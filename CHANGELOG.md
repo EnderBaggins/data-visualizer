@@ -4,6 +4,23 @@ Release notes, newest first: what changed, the human's words, how it was tested.
 (rules: RULES.md; why decisions were made: DECISIONS.md). Each entry: version, date, level (major / minor / patch),
 what changed, the human's request in quotes, how it was tested.
 
+- **v15.4.0 (2026-11-21, minor): the analysis plugin.** (human: "do 1. and 2." — the analysis plugin and the demo
+  desktop; D17: "visualizer is matplotlib and these other tools are a different things that WORKS with it" — DECISIONS
+  D22) Nothing changes on screen with the plugins on.
+  - **Moved to `viewer/plugins/analysis/`:** fit and averaged curve (`curvetools.js`), period with its plots and line
+    kind (`period.js`; was `js/cycleplots.js`), steps and steps from another plot with the steps output card
+    (`steps.js`, computation in `stepsof.js`). `plugins/index.json` loads analysis before aperture4 (foot gaps read
+    steps tools). Stays core: `cycles.js` (period readings) and `fit.js` (fit variables), readings, lineouts, lines,
+    bands, points, contours, tables, variables.
+  - **New hooks:** optional tool fields `prepare1d`, `draw1d`, `legend1d`, `textRow` (a plugin tool draws itself on a
+    1D plot); `registerOutputKind` (a named tool's output fields, `$name.field`); `plugin.json` may name a plugin's
+    tools and lines, so with the plugin off those say "needs the analysis plugin, which is not loaded" (settings kept).
+  - **Order:** the plugins' tools are listed after the core's (curves: lineout, fit, averaged curve, period).
+  - Done by a background agent; its tests (local test store, a test desktop with every moved tool, before vs after the
+    move): every fit parameter, period, lag, step, averaged curve, period-plot point and canvas hash identical; foot
+    gaps from a steps tool identical; plugins off: the notes, nothing thrown, saved state kept. Reviewed here: check
+    passes; the repo's demo desktop with the plugins finds the same τ = 6.00 and period 3.07 as before the move.
+    Not tested: dark theme, drag-placing, undo, copy CSV, the unnamed-steps naming migration on an old desktop.
 - **v15.3.0 (2026-11-21, minor): general defaults, the "?" list of every tool, TOOLS.md.** (human: "finish up the
   visualizer stuff"; stage 4 and the docs of the public-release plan, D17)
   - **Time units from the data:** the data manager writes the reader's `time_units` into each manifest (FORMAT.md); the

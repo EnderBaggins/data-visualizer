@@ -8,11 +8,10 @@
 //
 // Adding a kind: one entry here (every field), plus its module (expansions, curve, name) and its editor (lines.js).
 // tools/check.mjs checks every entry has every field.
-import { isFn, isAn, setLineYId, setLineYKind, datasetColor, toolValues } from "./model.js";
+import { isFn, isAn, setLineYId, setLineYKind, datasetColor } from "./model.js";
 import { isTab, tableExpansions, tableCurve, tabLineText } from "./tables.js";
-import { isCyc, cycExpansions, cycCurve, cycLineText } from "./cycleplots.js";
 import { isLo, loExpansions, loCurve, loLineText, loLineColor } from "./lineout.js";
-import { editTab, editCyc, editLo } from "./lines.js";
+import { editTab, editLo } from "./lines.js";
 
 // Calls go through arrows, so the modules can import each other in any order.
 // caps (what the line can do; false = it can't):
@@ -23,17 +22,13 @@ import { editTab, editCyc, editLo } from "./lines.js";
 // deps(l): what it reads, so redraws can find it: {tool} a tool's id, {output} a named tool's output, {table} a table.
 // yId(l): what it draws on a y axis (v14.4.1): two plots without a y-axis group share a y range only when these match.
 // yKind(l) (optional, v15.0): its y-axis group (e.g. "foot-gap width"); without it the line has none of its own.
-// v15.0: foot gaps and across lines are registered by the aperture4 plugin (plugins/aperture4/).
+// v15.0: foot gaps and across lines are registered by the aperture4 plugin (plugins/aperture4/); D22: the period tool's
+// plots ("cyc") by the analysis plugin (plugins/analysis/period.js).
 export const LINE_KINDS = [
   { key: "tab", label: "table", is: l => isTab(l),
     expand: l => tableExpansions(l), curve: (s, l, sub) => tableCurve(s, l, sub), name: l => tabLineText(l),
     editor: (...a) => editTab(...a), colour: (l, sub) => ((l.tab.by ?? "dataset") === "dataset" ? datasetColor(sub.tab) : null),
     deps: l => ({ table: l.tab.table }), yId: l => `tab:${l.tab.table}/${l.tab.y}`,
-    caps: { slider: false, perDataset: false, smooth: false } },
-  { key: "cyc", label: "period tool", is: l => isCyc(l),
-    expand: l => cycExpansions(l), curve: (s, l, sub) => cycCurve(s, l, sub), name: l => cycLineText(l),
-    editor: (...a) => editCyc(...a), colour: (l, sub) => toolValues(l.cyc.panel ?? null, l.cyc.tool)?.curves?.[sub.k]?.color ?? null,
-    deps: l => ({ tool: l.cyc.tool }), yId: l => `cyc:${l.cyc.what}`,
     caps: { slider: false, perDataset: false, smooth: false } },
   { key: "lo", label: "lineout", is: l => isLo(l),
     expand: l => loExpansions(l), curve: (s, l, sub, fns) => loCurve(s, l, sub, fns), name: l => loLineText(l),

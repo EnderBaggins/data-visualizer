@@ -10,8 +10,12 @@
 // own quantity — the potential — from the foot to the step's far edge, in the slope's sign), or its excess drop. No step
 // touching that foot at an output: no value there. Nothing is stored: each output's answer is kept in the browser per
 // recipe (changing the tool or its line starts over), computed three outputs at a time, nearest the slider first.
+// D22: steps tools are the analysis plugin's (plugins/analysis/): foot gaps need it loaded; without it they are
+// unavailable (no "+ line" entry; a saved foot-gap line says so) and this plugin still loads. The steps computation is
+// read from plugins/analysis/stepsof.js when the first output is computed.
 import { S, eff, resolved, namedTools, isFn, isAn, num1, panelRun, srcOf, runOf, axisInfo, setRunContext, newId, isRef, refsIn, listOf } from "../../js/model.js";
-import { lineCurve, expansions, axisFns, asDrawn, stepsOf, smoothOf, smoothSeries, smoothText, normSmooth } from "../../js/panel1d.js";
+import { lineCurve, expansions, axisFns, asDrawn, smoothOf, smoothSeries, smoothText, normSmooth } from "../../js/panel1d.js";
+import { toolDefined } from "../../js/settings.js";
 // (v9.1 imported fieldLineLength from measure.js: removed in v10.0)
 import * as R from "../../js/render.js";
 import { el, select, closePopover } from "../../js/ui.js";
@@ -26,8 +30,10 @@ export const gapLineText = l => `${GAP_FOOT[l.gap.foot] ?? l.gap.foot} gap ${GAP
 /** A new foot-gap line: steps tool `out` (its line `lineId` in dataset `run`), `foot` north | south, `what` (GAP_WHAT). */
 export const newGapLine = (out, lineId, run, foot, what) => ({ id: newId(), gap: { out, line: lineId ?? null, foot, what }, run, label: null, color: null,
   dash: foot === "south" ? "dashed" : "solid", width: 1.6, visible: true });
-/** The named steps tools: [{p, t, line}] (line = the data line it reads, or its plot's first). */
+/** The named steps tools: [{p, t, line}] (line = the data line it reads, or its plot's first); none when the analysis
+ *  plugin (the steps tool) is not loaded. */
 export function stepsTools() {
+  if (!toolDefined("steps")) return [];
   return namedTools().filter(x => x.t.type === "steps").map(x => {
     const data = (eff(x.p).lines || []).filter(l => !isFn(l) && !isAn(l) && !l.gap);
     return { ...x, line: data.find(l => l.id === x.t.line) ?? data[0] ?? null };
@@ -39,6 +45,7 @@ export function setGapProgress(fn) { onProgress = fn; }
 
 /** Where a foot-gap line reads: {P, sP, T, srcLine} (the steps tool's plot, its settings, the tool, its line) or {error}. */
 export function gapSource(line) {
+  if (!toolDefined("steps")) return { error: "foot gaps read a named steps tool, which comes with the analysis plugin, and it is not loaded (list it in viewer/plugins/index.json). The line's settings are kept." };   // D22
   const g = line.gap || {}, hit = namedTools().find(x => x.t.name === g.out && x.t.type === "steps");
   if (!hit) return { error: `foot gaps: there is no steps tool named "${g.out ?? "?"}" (sidebar → Outputs)` };
   const P = hit.p, sP = resolved(eff(P)), T = hit.t, data = (sP.lines || []).filter(l => !isFn(l) && !isAn(l) && !l.gap);
@@ -96,6 +103,7 @@ async function feetAt({ sP, T, srcLine, lens = [] }, sub, t) {
     over = Object.fromEntries(lens.map(n => [n, L]));
   }
   await asDrawn(sP, [c], TX, over);                       // v14.4: the tool's line as drawn
+  const { stepsOf } = await import("../analysis/stepsof.js");   // D22: the analysis plugin's steps
   const st = stepsOf(c, T);
   if (!st) return null;
   const X = st.xs, n = X.length, sg = Number(srcLine.slope?.sign) < 0 ? -1 : 1;

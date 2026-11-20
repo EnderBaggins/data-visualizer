@@ -2,22 +2,19 @@
 // summaries, few words — the help is in hover boxes. In a linked panel each row ends with its sharing tag (v8.3).
 import * as R from "./render.js";
 import { sectionRank, store, srcOf, fitAxis, axisCatalog, axisLabel, axisInfo, kindsFor, derivedKindsFor, datatypes, dimCoord, isSpherical, newTool, setAxes2D, runOf, runLabel, isRef, numOf, pickIndex, listOf, isFn, setToolShared, isAn,
-  S, outputNames, dropOutput, liveOutput, freeToolName, renameOutput, namedTools, validVarName, dataKindOf, missingKindOf, missingKindText, startPicksOf, newVarName } from "./model.js";
+  S, dropOutput, freeToolName, dataKindOf, missingKindOf, missingKindText, missingToolOf, missingToolText, startPicksOf, newVarName } from "./model.js";
 import { axesFor } from "./panel2d.js";
 import { el, select, num, text, check, toggle, colorPicker, popover, closePopover, editText, submenu, closeSubmenu } from "./ui.js";
 import { openAddLine, openEditLine, groupedSelect, scaleControls, smoothControls, lineName, isRecordedLine } from "./lines.js";
 import { expansions, legendSpot, LEGEND_SPOTS, normSmooth } from "./panel1d.js";
-import { runSelect, numRef, varBind, newMeasuredVar, fontSize, newFitVar, listPick, stepsOutputView } from "./vars.js";
+import { runSelect, numRef, varBind, newMeasuredVar, fontSize, listPick } from "./vars.js";
 
-import { groupOf, membersOf, menuSections, isDraw, drawKind, setDrawKind, DRAW_KINDS, CONTOUR_LEVELS, DATA_STATS, timeLine, isTimeLine, toolValues, dropToolValues, nameTaken, newId } from "./model.js";
+import { groupOf, membersOf, menuSections, isDraw, drawKind, setDrawKind, DRAW_KINDS, CONTOUR_LEVELS, DATA_STATS, timeLine, isTimeLine, toolValues, dropToolValues, newId } from "./model.js";
 import { cacheables, canCompute, labelOf, MARK } from "./cacheable.js";
 import { tableOf, numericCols, parseTabAxis, tabAxis, castForm } from "./tables.js";   // v14.0
-import { CYC_WHAT, isPerCurve, curveDim, newCyclePlot } from "./cycleplots.js";   // v14.1
 import { loGeom, loPositions, newLineoutPlot, retargetLineout, loNextPosition, loColor, loColors, setLoColor } from "./lineout.js";   // v14.2
-import { lineCan } from "./linekinds.js";   // v14.4: what a made line can do
 const LO_PICK = new Map();                                // v14.3: which lineout chip's colour picker is open (per tool)
 import { eff, timeUnits } from "./model.js";
-import { fitParams } from "./fit.js";
 
 const copy = o => JSON.parse(JSON.stringify(o));
 
@@ -145,7 +142,7 @@ function symTog(ctx, symKey, likeKey) {
 }
 /** Both ends of a symmetric pair from one typed value: [-|x|, |x|], or a variable in both (drawn as -|a| … |a|). */
 const symPair = x => (isRef(x) ? [x, x] : [-Math.abs(x), Math.abs(x)]);
-const dash = () => el("span", { class: "dash" }, "–");
+export const dash = () => el("span", { class: "dash" }, "–");   // (D22: exported for plugins' card rows)
 const resetBtn = (title, fn) => el("button", { class: "tog", title, onclick: fn }, "↺");
 /** ✎: edit one of the plot's labels (x / y / colour bar) in place; the hover box says what it is now. */
 function labelBtn(ctx, k, what) {
@@ -172,10 +169,10 @@ function rangeBoxes(ctx, key, k0, k1, symKey, allKeys) {
 }
 
 // ---- tools (both panel types): one summary line each; click it to edit (v8.4) ----------------------------------
-const fmtV = v => (isRef(v) ? v.slice(1) : v === null || v === undefined ? "?" : Array.isArray(v) ? v.map(R.fmt).join(", ") : R.fmt(v));   // v14.3.2: a typed list
+export const fmtV = v => (isRef(v) ? v.slice(1) : v === null || v === undefined ? "?" : Array.isArray(v) ? v.map(R.fmt).join(", ") : R.fmt(v));   // v14.3.2: a typed list
 const statLabel = (which, st) => (DATA_STATS[which].find(([k]) => k === st) || [st, st])[1];
 /** A tool in a few words (its card's title, the 🛠 list): its definition's. */
-const toolSummary = (ctx, t) => defOf(t)?.summary(ctx, t) ?? t.type;
+const toolSummary = (ctx, t) => defOf(t)?.summary(ctx, t) ?? (missingToolOf(t) ? `${missingToolOf(t).what} (needs the ${missingToolOf(t).plugin} plugin)` : t.type);   // D22: a plugin's tool with the plugin off
 const lineSummary = (ctx, t) => (t.mode === "time" ? `line at the slider's time${t.offset ? ` + ${fmtV(t.offset)}` : ""}` : `${t.orient === "h" ? "horizontal" : "vertical"} line ` + (t.mode === "time" ? ""
     : t.mode === "data" ? `at ${statLabel(t.orient === "h" ? "h" : "v", t.stat || (t.orient === "h" ? "mean" : "xmax"))}${t.stat === "cross" ? ` ${fmtV(t.at ?? 0)}` : ""}` : `at ${fmtV(t.value)}`) + (t.label ? ` “${t.label}”` : ""));
 /** The full controls of one tool (its editor pop-up). upd(key, value) applies a change. */
@@ -226,24 +223,10 @@ function valueRows(ctx, t) {
 }
 // ---- "→ table" (v14.0, human 2026-11-13: "I basically want the cast to cast a number and then that number isnt updated
 // unless I cast again"): a tool card's numbers of each curve, with the curve's dataset and picks, into a table ---------
-const SHORT = { tau: "τ", r2: "R²" };
-const plotName = ctx => ctx.panel?.name || "1D plot";
-const rangeText = t => (t.from != null || t.to != null ? `, x ${fmtV(t.from ?? null) === "?" ? "start" : fmtV(t.from)}–${fmtV(t.to ?? null) === "?" ? "end" : fmtV(t.to)}` : "");
-function castFit(ctx, t) {
-  const model = t.model || "poly", pars = fitParams(model, t.degree ?? 2), vals = toolValues(ctx.panel?.id, t.id) || [];
-  const mname = { poly: `degree-${fmtV(t.degree ?? 2)} polynomial`, power: "power-law", exp: "exponential" }[model] || model;
-  castForm(vals.map(v => ({ run: v.at?.run ?? null, d: v.at?.d ?? {}, values: Object.fromEntries(pars.map(([k]) => [k, v.params?.[k]])) })),
-    pars.map(([k, lab], i) => [k, SHORT[k] ?? k, i === 0, `${lab} of the ${mname} fit on the plot "${plotName(ctx)}"${rangeText(t)}`]));
-}
-// v14.1: the period tool's numbers of each curve → a table (the human picks which)
-function castPeriod(ctx, t) {
-  const v = toolValues(ctx.panel?.id, t.id);
-  if (!v?.curves) return castForm([], []);
-  const where = `in ${v.win.map(x => (Number.isFinite(x) ? R.fmt(x) : "…")).join("–")} (detrend ${v.how}) on the plot "${plotName(ctx)}"`;
-  castForm(v.curves.map(c => ({ run: c.at?.run ?? null, d: c.at?.d ?? {}, values: { period: c.period, regularity: c.regularity, n_cycles: c.n_cycles, lag: c.lag } })),
-    [["period", "period", true, `cycle period ${where}`], ["regularity", "regularity", true, `cycle regularity ${where}`], ["n_cycles", "cycles", false, `number of cycles ${where}`],
-      ...(v.curves.length > 1 && v.curves.some(c => Number.isFinite(c.lag)) ? [["lag", "lag", false, `lag against the most regular curve ${where}`]] : [])]);
-}
+/** The plot's name in a table column's note, and a tool's x range in words (D22: exported for plugins' casts). */
+export const plotName = ctx => ctx.panel?.name || "1D plot";
+export const rangeText = t => (t.from != null || t.to != null ? `, x ${fmtV(t.from ?? null) === "?" ? "start" : fmtV(t.from)}–${fmtV(t.to ?? null) === "?" ? "end" : fmtV(t.to)}` : "");
+// (D22: the fit's and the period tool's casts moved to the analysis plugin with their tools, plugins/analysis/)
 function castDraw(ctx, t) {
   const stat = t.stat || (t.type === "point" ? "max" : t.orient === "h" ? "mean" : "xmax");
   const name = { mean: "mean", max: "max", min: "min", xmax: "x at max", xmin: "x at min", cross: `crossing ${fmtV(t.at ?? 0)}` }[stat] || stat;
@@ -251,7 +234,7 @@ function castDraw(ctx, t) {
     [["v", name, true, `${name} of each curve on the plot "${plotName(ctx)}"${rangeText(t)}`]]);
 }
 /** A tool's own card rows: its definition's (TOOL_DEFS). upd(key, value) applies a change. */
-const toolControls = (ctx, t, upd) => defOf(t)?.rows(ctx, t, upd) ?? [];
+const toolControls = (ctx, t, upd) => defOf(t)?.rows(ctx, t, upd) ?? (missingToolOf(t) ? [el("div", { class: "warn" }, missingToolText(missingToolOf(t)))] : []);   // D22
 function lineRows(ctx, t, upd) {
   const p = ctx.panel;
     const oneD = p?.type === "1d", which = t.orient === "h" ? "h" : "v";
@@ -286,49 +269,6 @@ function pointRows(ctx, t, upd) {
       el("div", { class: "pop-row" }, text(t.label ?? "", v => upd("label", v || null), { size: 18, placeholder: "label", title: "beside the point; {v} = its y" })),
       ...(t.mode === "data" ? valueRows(ctx, t) : [])];
 }
-/** The averaged curve and the fit share their rows (which line, range, colours, → variable). */
-function curveToolRows(ctx, t, upd) {
-  const p = ctx.panel;
-    const lines = ctx.get("lines") || [], name = lineName;
-    const xaxis = ctx.get("xaxis"), dims = new Map();
-    for (const l of lines) {
-      if (isFn(l) || (t.line != null && l.id !== t.line)) continue;
-      const src = srcOf(l.run, l.q), f = src && fitAxis(src, xaxis);
-      if (f) for (const d of src.dims) if (d !== f.dim && !dims.has(d)) dims.set(d, d === "time" ? "time" : dimCoord(src, d).label || d);
-    }
-    const along = t.type === "mean" && t.along ? t.along : null;
-    // v8.12 (human 2026-10-20: "whole curve … gives me options of x axis range, that is confusing … I just want to set
-    // bounds"): just bounds — empty = the whole curve; view_x0 / view_x1 (▾) = the part shown. A "shown part" tool
-    // becomes those.
-    if (!along && t.over === "shown") { t.over = "range"; t.from = "$view_x0"; t.to = "$view_x1"; }
-    const fromTo = [numRef(t.from ?? null, v => upd("from", v), { size: 5, placeholder: "start", title: "from (empty = the start of the curve; view_x0 = the start of the part shown)" }), dash(),
-      numRef(t.to ?? null, v => upd("to", v), { size: 5, placeholder: "end", title: "to (empty = the end of the curve; view_x1 = the end of the part shown)" })];
-    return [
-      el("div", { class: "pop-row" }, "of", select([["", "every line"], ...lines.map(l => [String(l.id), name(l)])], t.line == null ? "" : String(t.line), v => upd("line", v === "" ? null : Number(v)))),
-      // v14.5.1 (Phase 3): "along x" is gone from the card — a line at each curve's mean is a horizontal line "from each curve"
-      t.type === "mean" ? el("div", { class: "pop-row" }, "along", select([...dims].map(([d, lab]) => [d, lab]), t.along ?? [...dims.keys()][0] ?? "", v => upd("along", v || null),
-        { title: "each curve averaged over this axis, drawn beside it (a line at each curve's mean along x: a horizontal line, \"from each curve\")" })) : null,
-      t.type === "fit" ? el("div", { class: "pop-row" }, select([["poly", "polynomial"], ["power", "power law A x^p"], ["exp", "exponential A e^(kx)"]], t.model || "poly", v => upd("model", v)),
-        t.model === "poly" || !t.model ? numRef(t.degree ?? 2, v => upd("degree", v ?? 2), { size: 2, title: "degree (0–8)" }) : null,
-        // v8.10 (human 2026-10-16: "tau is useful but … for general exponential fit maybe just k, so I guess can choose k or tau")
-        t.model === "exp" ? select([["k", "label: e^(kt)"], ["tau", "label: e^(−t/τ)"]], t.expShow || "k", v => upd("expShow", v), { title: "the formula label: the rate k, or the decay time τ = −1/k" }) : null) : null,
-      el("div", { class: "pop-row" }, along ? "over" : "x from", fromTo,
-        el("span", { class: "dim", title: `empty: the whole curve${xaxis === "time" ? " (inside the ⏱ time range)" : ""} · view_x0 / view_x1 (▾ in the box): the part of the plot shown, following pan & zoom` }, "ⓘ")),
-      // v8.11 (human 2026-10-20: the fit text "more customizable … kinda like the legend"): what its text says
-      t.type === "fit" ? el("div", { class: "pop-row" }, "text",
-        text(t.label ?? "", v => upd("label", v || null), { size: 14, placeholder: "label (automatic)", title: "the text before the formula; {c} = the curve's name; {name} = a variable; $…$ = LaTeX; empty = the curve's name when the fit has several curves" }),
-        toggle("R²", t.showR2 !== false, v => upd("showR2", v), { title: "show R² (how well it fits)" }),
-        toggle("range", !!t.showRange, v => upd("showRange", v), { title: "show the x range the fit used" })) : null,
-      el("div", { class: "pop-row" }, toggle("curve colours", t.curveColors !== false, v => upd("curveColors", v), { title: "each curve's own colour (off: the colour below)" }),
-        t.type === "mean" ? text(t.label ?? "", v => upd("label", v || null), { size: 12, placeholder: "label", title: "{v} = the mean" })
-          : toggle("formula", t.show !== false, v => upd("show", v), { title: "show the fitted formula and R²" }),
-        t.type === "mean" ? el("button", { title: "a reading of these means (one per curve)",
-          onclick: () => { closePopover(); newMeasuredVar({ panel: p.id, line: t.line ?? lines.find(l => !isFn(l))?.id, op: "mean", along: t.along, over: t.over, from: t.from, to: t.to }); } }, "→ variable")
-        : el("button", { title: "a fit variable: k, τ, A or R² (a coefficient for a polynomial) of this fit, one value per dataset — other plots and analytic functions can use it",
-          onclick: () => { closePopover(); newFitVar({ panel: p.id, tool: t.id, line: t.line ?? lines.find(l => !isFn(l))?.id }); } }, "→ variable"),
-        t.type === "fit" ? el("button", { title: "cast this fit's numbers (τ, k, A, R² …) of each curve into a table (sidebar → Tables); they stay until you cast again",
-          onclick: () => { closePopover(); castFit(ctx, t); } }, "→ table") : null)];
-}
 function lineoutRows(ctx, t, upd) {
   const p = ctx.panel;
   // v14.2: lineouts of this map (lineout.js)
@@ -362,69 +302,6 @@ function lineoutRows(ctx, t, upd) {
           const n = newVarName("number"); S.vars[n] = { name: n, type: "number", value: P.length > 1 ? P : P[0] ?? 0, ...(t.colors ? { colors: [...t.colors] } : {}) }; upd("at", "$" + n); ctx.api?.varsChanged?.(false);   // v14.3: with its colours
         } }, "→ variable"),
         hasPlot ? null : el("button", { title: "make its 1D plot again (it was removed)", onclick: () => { closePopover(); newLineoutPlot(ctx.panel, t); } }, "make its plot"))];
-}
-function periodRows(ctx, t, upd) {
-  const p = ctx.panel;
-  // v14.1: the cycle period in a window (cycles.js)
-    const lines = (ctx.get("lines") || []).filter(l => !isFn(l)), v = toolValues(ctx.panel?.id, t.id), f = x => (Number.isFinite(x) ? R.fmt(x) : "—");
-    const run = String(t.detrend || "").startsWith("running:"), view = ctx.get("view");
-    const perOk = !!curveDim(v);
-    return [
-      el("div", { class: "pop-row" }, "of", select([["", "every line"], ...lines.map(l => [String(l.id), lineName(l)])], t.line == null ? "" : String(t.line), x => upd("line", x === "" ? null : Number(x)))),
-      el("div", { class: "pop-row" }, "window", numRef(t.from ?? null, x => upd("from", x), { size: 5, placeholder: "start", title: "where the cycle lives: from (in x as drawn; empty = the start)" }), dash(),
-        numRef(t.to ?? null, x => upd("to", x), { size: 5, placeholder: "end", title: "to (empty = the end)" }),
-        el("button", { title: view ? "the window = the x range shown now (zoom to the cycles first)" : "zoom the plot to the cycles first, then click: the window = the x range shown", disabled: !view,
-          onclick: () => { const a = Math.min(view.x0, view.x1), b = Math.max(view.x0, view.x1); t.from = Number(a.toPrecision(5)); t.to = Number(b.toPrecision(5)); upd("to", t.to); } }, "use the zoom")),
-      el("div", { class: "pop-row" }, "detrend", select([["linear", "linear fit"], ["mean", "mean"], ["quadratic", "quadratic fit"], ["running", "running mean over W"]], run ? "running" : t.detrend || "linear",
-        x => upd("detrend", x === "running" ? `running:${Math.max(3, Math.round(3 * ((v?.curves || []).map(c => c.period).find(Number.isFinite) || 8)))}` : x), { title: "the slow trend removed inside the window first (the research session found every choice gives the same period on ec025)" }),
-        run ? ["W", numRef(Number(String(t.detrend).split(":")[1]), x => { if (Number(x) > 0) upd("detrend", `running:${x}`); }, { size: 4, title: "running-mean width (x units); keep it > 3 × the period" })] : null),
-      v?.curves?.length ? el("div", { class: "toolvals" }, v.curves.map(c => el("div", { title: c.note || "" }, el("span", { class: "dim" }, `${c.display}: `),
-        Number.isFinite(c.period) ? `${f(c.period)} · reg ${c.regularity.toFixed(2)} · ${f(c.n_cycles)} cycles${Number.isFinite(c.lag) && v.curves.length > 1 ? ` · lag ${f(c.lag)}` : ""}` : (c.note || "no clear cycle")))) : el("div", { class: "dim" }, "values: shown after the plot is drawn"),
-      Number.isFinite(v?.inPhase) ? el("div", { class: "dim", title: "mean pairwise correlation of the detrended curves in the window (1 = all in step)" }, `in phase ${v.inPhase.toFixed(2)} · lags against ${v.curves[v.ref]?.display ?? "?"}`) : null,
-      el("div", { class: "pop-row" },
-        el("button", { title: "cast period, regularity, cycles (and lag) of each curve into a table — you tick which", onclick: () => { closePopover(); castPeriod(ctx, t); } }, "→ table"),
-        el("button", { title: "a reading: period, regularity or number of cycles of one line, one value per dataset (pick which in the form)",
-          onclick: () => { closePopover(); newMeasuredVar({ panel: ctx.panel.id, line: t.line ?? lines.find(l => lineCan(l, "slider"))?.id, op: "period", from: t.from ?? null, to: t.to ?? null, detrend: t.detrend || "linear" }); } }, "→ variable"),
-        select([["", "new plot…"], ["ac", CYC_WHAT.ac], ["sp", CYC_WHAT.sp], ["sr", CYC_WHAT.sr], ...(perOk ? ["pp", "pr", "pl", "pn"].map(k => [k, CYC_WHAT[k]]) : [])], "",
-          x => { if (!x) return; closePopover(); newCyclePlot(ctx.panel, t, x); }, { title: "a new plot made from this tool, next to this one; it follows the tool (window, detrend). Per-curve plots need curves that differ by a pick (r_max …)" })),
-      el("div", { class: "pop-row" }, "sliding", numRef(t.width ?? 32, x => { if (Number(x) > 0) upd("width", x); }, { size: 3, title: "the sliding plots' window width (x units)" }), "step",
-        numRef(t.step ?? 2, x => { if (Number(x) > 0) upd("step", x); }, { size: 3, title: "their step" }),
-        toggle("text", t.show !== false, x => upd("show", x), { title: "the numbers in the plot's text box" }))];
-}
-function stepsRows(ctx, t, upd) {
-  const p = ctx.panel;
-  // v8.29: the slope-of-the-drop steps (claude_work/scratch/gap-proto/steps.py)
-    const lines = ctx.get("lines") || [], name = lineName;
-    // v8.32: its name = its output's name (sidebar → Outputs; "$name.from" in number fields; + tool → steps from an output)
-    const rename = v => {
-      const n = String(v || "").trim();
-      if (!n || n === t.name) return;
-      if (!validVarName(n) || nameTaken(n)) { alert(`"${n}": a name of letters, digits and _ that no variable or tool has`); return; }
-      const old = t.name; t.name = n; if (old) renameOutput(old, n); upd("name", n);
-    };
-    return [
-      el("div", { class: "pop-row" }, "name", text(t.name ?? "", rename, { size: 10, title: "its name: number fields read $name.from, .to, .start, .end, .excess, .count, .sigma; \"steps from another plot\" shades its steps there" })),
-      el("div", { class: "pop-row" }, "of", select([["", "every line"], ...lines.filter(l => !isFn(l)).map(l => [String(l.id), name(l)])], t.line == null ? "" : String(t.line), v => upd("line", v === "" ? null : Number(v)))),
-      el("div", { class: "pop-row" }, "background: median over",
-        numRef(t.w ?? 3, v => { if (isRef(v) || v > 0) upd("w", v); }, { size: 4, title: "the window of the running median along x, in x as drawn (R* on an s axis); a variable works" }),
-        "· steps above it by", numRef(t.k ?? 3, v => upd("k", v ?? 3), { size: 3, title: "k: a step is where the curve is above the background by more than k σ (σ = 1.4826 × the median absolute deviation of curve − background); a variable works" }), "σ"),
-      el("div", { class: "pop-row" }, toggle("background", t.showBg !== false, v => upd("showBg", v), { title: "draw the background b (dashed, the curve's colour)" }),
-        toggle("threshold", t.showThr !== false, v => upd("showThr", v), { title: "draw b + kσ (dotted)" }),
-        toggle("shade", t.shade !== false, v => upd("shade", v), { title: "shade the steps: light = from where the excess starts to where it ends, dark = 10–90 % of its excess ∫(curve − b) dx" }),
-        toggle("text", t.show !== false, v => upd("show", v), { title: "σ and the steps' 10–90 % spans in the plot's text box" })),
-      ...stepsOutputView(t.name),                          // v12.2: what it found (was the Tools tab's pinned values)
-      el("div", { class: "dim" }, "Use it in a slope plot (a line's \"→ its slope\", or + line → slope of…), with the sign that makes the drop positive (−d/dx when the quantity falls along x): the steps are where the drop is steeper than its running median.")];
-}
-function stepbandsRows(ctx, t, upd) {
-  const p = ctx.panel;
-  // v8.32: another named steps tool's steps, shaded here
-    const outs = outputNames().filter(n => liveOutput(n)?.kind === "steps");
-    return [
-      el("div", { class: "pop-row" }, "steps of", select([...(t.source && !outs.includes(t.source) ? [[t.source, `${t.source} (not found)`]] : []), ...outs.map(n => [n, `${n} (${liveOutput(n).xlabel})`])],
-        t.source ?? "", v => upd("source", v), { title: "a steps tool (by its name): its steps, each curve here shaded with its own field line's (same dataset and r_max)" })),
-      el("div", { class: "pop-row" }, toggle("whole step", t.whole !== false, v => upd("whole", v), { title: "light: from where its excess starts to where it ends" }),
-        toggle("10–90 %", t.core !== false, v => upd("core", v), { title: "darker: 10–90 % of its excess ∫(curve − b) dx" })),
-      el("div", { class: "dim" }, outs.length ? "Each curve gets the steps found on its own field line (same dataset and r_max) by the named tool; the x axes must match." : "No named steps tool yet: a slope plot's + tool → steps above a running median.")];
 }
 /** The card rows of a contour tool (v15.0: general; the aperture4 plugin's field lines use them too). */
 export function contourRows(ctx, t, upd) {
@@ -470,8 +347,23 @@ function toolEditor(ctx, e, ev) {
  *    colour(t)    "single": the card's colour picker; "curves": each curve's colour; "list": each value's (chips) — no
  *                 picker then (it was shown and ignored)
  *    addTo(ctx)   optional: adding it joins an existing tool instead (lineouts);  afterAdd(ctx, t)  optional
+ *  Optional (D22, for tools that compute on a 1D plot's curves; the analysis plugin's fit, averaged curve, period, steps,
+ *  steps from another plot):
+ *    problem(ctx)        why it cannot go on this plot (a short reason), or null; asked after the core's own reasons.
+ *    prepare1d(env, t)   may be async; after the plot's curves are read (as drawn), before its y range. env = {panel, s
+ *                        (its settings, resolved), T (axis functions), curves, multiRun, errors, toolCurves}. Curves it
+ *                        pushes to env.toolCurves ({tid: t.id, parent: curve, curve: {xs, ys}, role}) count in the y range;
+ *                        what it returns is handed to its draw1d. E.g. an averaged curve's curves; a named tool's output.
+ *    draw1d(env, t, prepared)   in the plot's tool order, after the curves are drawn. env = {panel, s, T, ctx (canvas),
+ *                        plot, ax, ay, dpr, curves, win ([x0, x1] shown), tx ({dataset}, {t}), info (the plot's text box:
+ *                        push {color, tool, text}), toolCurves, colorOfSlot(line, sub, key), error(message)}.
+ *    legend1d(env, t)    entries it adds to the legend ([{label, color, dash, width, sep, tool}]).
+ *    textRow             true: a plot with this tool shows the "fit text" row (where the tool texts sit) in ⚙ → Lines.
+ *  A stored tool no definition claims, of a plugin that is not loaded (its plugin.json "tools"), keeps its settings and
+ *  says so in its card and on its plot (missingToolOf, model.js).
  *  tools/check.mjs checks every definition has every field. */
-const TOOL_DEFAULTS = { folder: "more", where: "any", help: "", is: () => false, make: () => null, summary: (ctx, t) => t.type, rows: () => [], style: true, colour: () => "single", addTo: null, afterAdd: null };
+const TOOL_DEFAULTS = { folder: "more", where: "any", help: "", is: () => false, make: () => null, summary: (ctx, t) => t.type, rows: () => [], style: true, colour: () => "single", addTo: null, afterAdd: null,
+  problem: null, prepare1d: null, draw1d: null, legend1d: null, textRow: false };
 export const TOOL_FOLDERS = [["draw", "draw"], ["curves", "curves"], ["more", "more"]];
 const TOOL_DEFS = [
   { key: "hline", label: "horizontal line", folder: "draw", where: "any",
@@ -494,17 +386,6 @@ const TOOL_DEFS = [
     help: "contour lines of a 2D quantity at the levels you give (numbers, a list or variables)",
     is: t => t.type === "contour", make: ctx => newTool("contour", { q: ctx.get("q") }),
     summary: (ctx, t) => `contours of ${srcOf(ctx.get("run"), t.q ?? ctx.get("q"))?.label ?? t.q ?? "?"}${t.levels ? ` at ${t.levels}` : ""}`, rows: contourRows, style: true, colour: t => (t.listColors ? "list" : "single") },
-  { key: "fit", label: "fit", folder: "curves", where: "1d",
-    help: "a polynomial, power law or exponential fit of each curve over a range; its numbers (τ, k, p, A, R²) → variables",
-    is: t => t.type === "fit", make: () => newTool("fit"),
-    summary: (ctx, t) => `${{ poly: `degree-${fmtV(t.degree ?? 2)} polynomial`, power: "power-law", exp: "exponential" }[t.model || "poly"]} fit`, rows: curveToolRows, style: true, colour: t => (t.curveColors !== false ? "curves" : "single") },
-  { key: "meanalong", label: "averaged curve", folder: "curves", where: "1d",
-    help: "each curve averaged along another axis (e.g. over r_max), drawn beside it",
-    is: t => t.type === "mean", make: ctx => {
-      const xaxis = ctx.get("xaxis"), l = (ctx.get("lines") || []).find(x => !isFn(x)), src = l && srcOf(l.run, l.q), f = src && fitAxis(src, xaxis);
-      return newTool("mean", { along: src?.dims.find(d => d !== f?.dim) ?? null });
-    },
-    summary: (ctx, t) => `mean${t.along ? ` along ${t.along}` : ""} of ${t.line == null ? "every line" : "one line"}`, rows: curveToolRows, style: true, colour: t => (t.curveColors !== false ? "curves" : "single") },
   { key: "lineout", label: "lineout", folder: "curves", where: "2d",
     help: "a linked 1D plot of this map's quantity along one of its axes, one curve per position (a cut across the other axis): click the map to move the last lineout, shift-click on the map to add one; → variable makes the positions a variable",
     is: t => t.type === "lineout", make: () => newTool("lineout"),
@@ -522,18 +403,6 @@ const TOOL_DEFS = [
       return had;
     },
     afterAdd: (ctx, t) => setTimeout(() => newLineoutPlot(ctx.panel, t), 0) },
-  { key: "period", label: "period", folder: "curves", where: "1d",
-    help: "the period of a cycle in each curve inside a window you choose (detrended autocorrelation, its first peak; regularity < 0.2 = no clear cycle), the lags between curves; → table, → variable, new plots (autocorrelation, period over time, per curve)",
-    is: t => t.type === "period", make: () => newTool("period"),
-    summary: (ctx, t) => `period in ${t.from == null && t.to == null ? "the whole curve" : `${fmtV(t.from ?? null) === "?" ? "start" : fmtV(t.from)}–${fmtV(t.to ?? null) === "?" ? "end" : fmtV(t.to)}`} (detrend ${t.detrend || "linear"})`, rows: periodRows, style: false, colour: () => "single" },
-  { key: "steps", label: "steps", folder: "more", where: "1d",
-    help: "steps above a running-median background (the slope-of-the-drop gaps); named; its card lists its steps",
-    is: t => t.type === "steps", make: () => newTool("steps", { name: freeToolName("steps") }),
-    summary: (ctx, t) => `${t.name ? t.name + ": " : ""}steps above the median over ${fmtV(t.w ?? 3)} (${fmtV(t.k ?? 3)} σ) of ${t.line == null ? "every line" : "one line"}`, rows: stepsRows, style: true, colour: () => "curves" },
-  { key: "stepbands", label: "steps from another plot", folder: "more", where: "1d",
-    help: "a named steps tool's steps shaded on this plot's curves (same dataset and r_max)",
-    is: t => t.type === "stepbands", make: () => newTool("stepbands", { source: outputNames().find(n => liveOutput(n)?.kind === "steps") ?? null }),
-    summary: (ctx, t) => `steps of ${t.source ?? "?"} (shaded)`, rows: stepbandsRows, style: false, colour: () => "curves" },
 ].map(d => ({ ...TOOL_DEFAULTS, ...d }));
 /** [key, label, help, where, folder] for the Tools tab (vars.js) and the ⚙ menu. */
 export const TOOLS = TOOL_DEFS.map(d => [d.key, d.label, d.help, d.where, d.folder]);
@@ -546,6 +415,7 @@ export function registerTool(d) {
   if (TOOL_DEFS.some(x => x.key === d.key)) throw new Error(`there is already a tool "${d.key}"`);
   if (!["any", "1d", "2d", "map"].includes(d.where)) throw new Error(`where must be any, 1d, 2d or map (not ${d.where})`);
   if (!/^[\w -]+$/.test(d.folder)) throw new Error(`bad folder name ${d.folder}`);
+  for (const f of ["problem", "prepare1d", "draw1d", "legend1d"]) if (d[f] != null && typeof d[f] !== "function") throw new Error(`${f} is not a function`);   // D22
   if (!TOOL_FOLDERS.some(([f]) => f === d.folder)) TOOL_FOLDERS.push([d.folder, d.folder]);
   const def = { ...TOOL_DEFAULTS, ...d };
   TOOL_DEFS.push(def); TOOLS.push([def.key, def.label, def.help, def.where, def.folder]);
@@ -553,6 +423,10 @@ export function registerTool(d) {
 /** The definition of menu key `what`, and of stored tool t. */
 const toolDef = what => TOOL_DEFS.find(d => d.key === what) ?? null;
 const defOf = t => (t ? TOOL_DEFS.findLast(d => d.is(t)) ?? null : null);   // v15.0: a later (plugin) definition wins (field lines over contours)
+/** D22: the definition of stored tool t (panel1d.js draws with its prepare1d / draw1d / legend1d), and whether a tool
+ *  `key` is defined (a plugin may read another plugin's tools: aperture4's foot gaps read the analysis plugin's steps). */
+export const toolDefOf = defOf;
+export const toolDefined = key => !!toolDef(key);
 export const toolWhere = w => (w === "1d" ? "1D plots" : w === "2d" ? "maps (2D plots)" : w === "map" ? "r–θ and x–y maps" : "any plot");   // v14.3.2: "2d" (lineout)
 export const canHaveTool = (panelType, what) => { const w = toolDef(what)?.where ?? "any"; return w === "any" || (w === "map" ? panelType === "2d" : w === panelType); };
 /** v12.0.1: why tool `what` cannot go on this plot (a short reason), or null if it can. Dragging / arming a tool shows the
@@ -571,14 +445,7 @@ export function toolProblem(ctx, what) {
   if (type !== "1d" || folder === "draw") return null;
   const curves = (ctx.get("lines") || []).filter(l => !isFn(l));
   if (!curves.length) return "this plot has no data curves yet";
-  if (what === "meanalong") {
-    const xaxis = ctx.get("xaxis");
-    const other = curves.some(l => { const src = srcOf(l.run, l.q), f = src && fitAxis(src, xaxis); return !!src && src.dims.some(d => d !== f?.dim); });
-    if (!other) return "its curves have no other axis to average over";
-  }
-  if (what === "stepbands" && !outputNames().some(n => liveOutput(n)?.kind === "steps"))
-    return "there is no steps tool on any plot yet (add one to a slope plot first)";
-  return null;
+  return toolDef(what)?.problem?.(ctx) ?? null;              // D22: its own (the averaged curve, steps from another plot)
 }
 /** v12.1: ⚙ → Tools' add menu: every tool by folder; the ones this plot cannot take greyed out, the reason on hover. */
 function toolMenu(ctx) {
@@ -618,12 +485,12 @@ export function copyProblem(ctx, t, from = null) {
   return null;
 }
 /** Copy tool `t` onto this plot: its look and settings, a new id; "one line" becomes every line when this plot has no line
- *  of that id; a steps tool gets a new name (others none). Returns the copy. */
+ *  of that id; a named tool (steps) gets a new name (others none). Returns the copy. */
 export function copyToolTo(ctx, t) {
   const c = JSON.parse(JSON.stringify(t)), what = toolKey(t), type = ctx.panel?.type, ownTools = ctx.panel?.settings.ownTools || [];
   c.id = newId(); c.visible = true;
   if (c.line != null && !(ctx.get("lines") || []).some(l => l.id === c.line)) c.line = null;
-  if (c.type === "steps") c.name = freeToolName("steps"); else delete c.name;
+  if (c.name) c.name = freeToolName(c.type); else delete c.name;   // D22: a named tool (steps: "steps2" …), any kind
   if (ctx.inGroup() && type === "1d" && toolDef(what)?.folder !== "draw") ctx.set("ownTools", [...ownTools, c]);
   else { const tools = ctx.get("tools") || []; tools.push(c); ctx.set("tools", tools); }
   ctx.done();
@@ -1030,7 +897,7 @@ export function settings1DBox(ctx) {
       const hit = LEGEND_SPOTS.find(([k]) => k === v);
       if (v !== "custom") { ctx.set("legendPos", v === "outside" ? "outside" : v === "ur" ? null : { fx: hit[2], fy: hit[3] }); ctx.done(); }
     }, { title: "where it sits (or drag it on the plot; it snaps to corners and edges)" }), fontSize(ctx, "legend")));
-  if ([...(ctx.get("tools") || []), ...(ctx.panel?.settings.ownTools || [])].some(t => t.type === "fit")) lrows.push(fitTextRow(ctx));   // v8.11
+  if ([...(ctx.get("tools") || []), ...(ctx.panel?.settings.ownTools || [])].some(t => defOf(t)?.textRow)) lrows.push(fitTextRow(ctx));   // v8.11 (D22: the fit's definition says)
   out.push(section("Lines", ...lrows));
   out.push(layoutSection(ctx, "1d"));
   out.push(toolsSection(ctx, "1d"));

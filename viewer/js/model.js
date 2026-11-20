@@ -131,11 +131,20 @@ export const READING_OPS = [];
 export const outputNames = () => resultOwners("output:");
 export const dropOutput = name => dropResult(`output:${name}`);
 export const putOutput = (name, out) => putResult(`output:${name}`, "own", out);
-export const OUTPUT_FIELDS = {
-  steps: { from: "the 10 % point of each step (x)", to: "the 90 % point of each step (x)", start: "where each step starts (x)",
-    end: "where each step ends (x)", excess: "each step's excess ∫(curve − background) dx", count: "the number of steps (one per curve)",
-    sigma: "σ of curve − background (one per curve)" },
-};
+/** v15.4 (DECISIONS D22): the kinds of output a named tool can publish (the analysis plugin's steps tool: "steps"):
+ *  kind -> {field: what it is}. Filled by registerOutputKind; "$name.field" reads OUTPUT_KINDS[kind].values(curve, field)
+ *  of every curve of the output. */
+export const OUTPUT_FIELDS = {};
+const OUTPUT_KINDS = {};
+/** v15.4 (plugins.js): a kind of tool output: {kind, fields: {field: what it is}, values(curve, field) -> [numbers]}
+ *  (curve = one entry of the output's curves). A kind that exists is refused. */
+export function registerOutputKind(k) {
+  for (const f of ["kind", "fields", "values"]) if (!(f in (k || {}))) throw new Error(`missing ${f}`);
+  if (typeof k.values !== "function") throw new Error("values is not a function");
+  if (!k.fields || typeof k.fields !== "object") throw new Error("fields is not an object");
+  if (OUTPUT_KINDS[k.kind]) throw new Error(`there is already an output kind "${k.kind}"`);
+  OUTPUT_KINDS[k.kind] = k; OUTPUT_FIELDS[k.kind] = { ...k.fields };
+}
 /** Every tool on the desktop that has a name: [{p, t}] (a plot's own tools and the shared ones). */
 export function namedTools() {
   const out = [], seen = new Set();
@@ -152,13 +161,9 @@ export function liveOutput(name) {
   const o = getResult(`output:${name}`, "own");
   return o && namedTools().some(x => x.t.name === name) ? o : null;
 }
-/** One curve's values of an output's field: a list. */
+/** One curve's values of an output's field: a list (its kind's, registerOutputKind). */
 function fieldOf(kind, c, field) {
-  if (kind !== "steps") return [];
-  if (field === "count") return [c.steps.length];
-  if (field === "sigma") return [c.sigma];
-  const key = { from: "s10", to: "s90", start: "x0", end: "x1", excess: "D" }[field];
-  return key ? c.steps.map(st => st[key]) : [];
+  return OUTPUT_KINDS[kind]?.values(c, field) ?? [];
 }
 /** "$steps1.from" (without the $): every curve's values of that field, one list; null if it is not a live output. */
 export function outputValues(ref) {
@@ -506,7 +511,7 @@ export function yAxisId(s) {
 // v14.4.1: what a made line draws comes from the line-source registry (linekinds.js yId), handed over when it loads
 // (model.js stays free of UI imports, for the node tests); until then the same rule inline
 // (a function declaration holds it: ready whichever module loads first)
-function lineYId(l) { return lineYId.fn ? lineYId.fn(l) : l.tab ? `tab:${l.tab.table}/${l.tab.y}` : l.cyc ? `cyc:${l.cyc.what}` : l.lo ? `lo:${l.lo.map}/${l.lo.tool}` : null; }
+function lineYId(l) { return lineYId.fn ? lineYId.fn(l) : l.tab ? `tab:${l.tab.table}/${l.tab.y}` : l.lo ? `lo:${l.lo.map}/${l.lo.tool}` : null; }
 export function setLineYId(fn) { lineYId.fn = fn; }
 function lineYKind() { return null; }
 export function setLineYKind(fn) { lineYKind.fn = fn; }
@@ -643,21 +648,31 @@ export function startPicksOf(src, q) {
   return null;
 }
 /** Data that a plugin that is not loaded draws (its plugin.json: [{plugin, dims, what}], set by plugins.js). */
-let MISSING_KINDS = [];
-export function setMissingKinds(list) { MISSING_KINDS = Array.isArray(list) ? list : []; }
+let MISSING_KINDS = [], MISSING_TOOLS = [], MISSING_LINES = [];
+/** v15.4 (D22): also the tools and made lines of such plugins (plugin.json "tools": [{type, what}], "lines": [{field, what}]). */
+export function setMissingKinds(list, { tools = [], lines = [] } = {}) {
+  MISSING_KINDS = Array.isArray(list) ? list : [];
+  MISSING_TOOLS = Array.isArray(tools) ? tools : []; MISSING_LINES = Array.isArray(lines) ? lines : [];
+}
 /** The not-loaded plugin's data `src` is ({plugin, dims, what}), or null. */
 export const missingKindOf = src => (!src?.spaceDims || dataKindOf(src) ? null : MISSING_KINDS.find(m => m.dims.some(d => src.spaceDims.includes(d))) || null);
 /** The message a plot of such data shows instead of drawing (its settings are kept). */
 export const missingKindText = (m, label) => `needs the ${m.plugin} plugin, which is not loaded: ${label} is ${m.what} (list the plugin in viewer/plugins/index.json; ?plugins= in the address turns plugins off). The plot's settings are kept.`;
+/** v15.4 (D22): the not-loaded plugin stored tool t belongs to ({plugin, type, what}), or null (asked only for a tool that
+ *  no loaded definition claims). */
+export const missingToolOf = t => (t?.type ? MISSING_TOOLS.find(m => m.type === t.type) || null : null);
+/** The not-loaded plugin made line l belongs to ({plugin, field, what}): the line carries that field (l.cyc …), or null. */
+export const missingLineOf = l => (l ? MISSING_LINES.find(m => l[m.field] != null) || null : null);
+/** What such a tool or line says instead of drawing (its settings are kept). */
+export const missingToolText = m => `${m.what}: needs the ${m.plugin} plugin, which is not loaded (list the plugin in viewer/plugins/index.json; ?plugins= in the address turns plugins off). Its settings are kept.`;
 // ---- axes catalogue (standard dims: r, theta, time, r_max, theta_foot ...; a data kind's own axes) ---------------
-const VIRTUAL_AXES = { lag: { label: "lag", units: "" } };   // v14.1: an autocorrelation's lag (the period tool's plots)
+// (v15.4, D22: the "lag" axis of the period tool's autocorrelation plots needs no entry: an unknown axis reads as itself)
 export function axisInfo(id) {
   if (id === "time") return { id, label: "t", units: timeUnits(), scale: "linear" };   // v15.3: the data's units
   if (typeof id === "string" && id.startsWith("tab:")) {   // v14.0: a table column (tables.js tabAxis)
     const i = id.lastIndexOf("/"), tb = S.tables?.[decodeURIComponent(id.slice(4, i))], k = id.slice(i + 1), c = tb?.cols?.find(x => x.key === k);
     return c ? { id, label: c.label || k, units: "", scale: "linear" } : { ...axisInfo(k), id };
   }
-  if (VIRTUAL_AXES[id]) return { id, ...VIRTUAL_AXES[id], scale: "linear" };
   for (const k of DATA_KINDS) if (k.axisInfo?.[id]) return { id, ...k.axisInfo[id], scale: "linear" };   // v15.1: a data kind's axis
   for (const run of Object.values(store.runs)) { const c = run.coord(id); if (c) return { id, label: c.label, units: c.units, scale: c.scale || "linear" }; }
   return { id, label: id, units: "", scale: "linear" };
@@ -867,20 +882,12 @@ export function newTool(type, extra = {}) {
   const base = { id: newId(), type, visible: true };
   if (type === "line") return { ...base, orient: "v", mode: "fixed", value: 0, offset: 0, color: "#555555", dash: "dotted", width: 1.2, ...extra };
   if (type === "contour") return { ...base, q: null, levelMode: "values", levels: "", color: "#39ff14", width: 1.2, ...extra };   // v15.0: q null = the map's own quantity
-  // v5.13 (1D): a horizontal line at each curve's mean; a least-squares fit of each curve. line: a line id or null (all);
-  // over: "range" = the whole curve (inside the time range on a time axis, narrowed by from / to) | "shown" = the window
-  if (type === "mean") return { ...base, line: null, along: null, over: "range", from: null, to: null, curveColors: true, color: "#555555", dash: "dashed", width: 1.2, label: null, ...extra };
-  if (type === "fit") return { ...base, line: null, model: "poly", degree: 2, over: "range", from: null, to: null, curveColors: true, color: "#555555", dash: "dashed", width: 1.4, show: true, ...extra };
-  // v8.29 (1D): steps above a running-median background: w = its window along x, k = the threshold in robust σ
-  if (type === "steps") return { ...base, line: null, w: 3, k: 3, showBg: true, showThr: true, shade: true, show: true, width: 1.1, ...extra };
-  // v8.32 (1D): another tool's steps (its output, by name) shaded on this plot's curves: whole steps light, 10–90 % dark
-  if (type === "stepbands") return { ...base, source: null, whole: true, core: true, color: "#888888", ...extra };
+  // (D22: the averaged curve, fit, steps, steps from another plot and period are made by the analysis plugin,
+  // plugins/analysis/)
   // v12.0 (draw): a band between two values, a point
   if (type === "band") return { ...base, orient: "v", lo: 0, hi: 1, alpha: 0.15, color: "#888888", label: null, ...extra };
-  // v14.1: the cycle period in a window (cycles.js; panel1d draws it, cycleplots.js plots made from it)
   // v14.2: lineouts of a map (lineout.js): along x or y, at positions of the other axis (or a variable), its 1D plot
   if (type === "lineout") return { ...base, along: "x", at: [], plot: null, color: "#d6007a", dash: "dashed", width: 1.4, label: null, ...extra };
-  if (type === "period") return { ...base, line: null, from: null, to: null, detrend: "linear", width: 32, step: 2, color: "#7a3fb0", show: true, ...extra };
   if (type === "point") return { ...base, mode: "fixed", x: 0, y: 0, stat: "max", line: null, from: null, to: null, curveColors: true, size: 5, color: "#d6007a", label: null, ...extra };
   throw new Error(`unknown tool ${type}`);
 }

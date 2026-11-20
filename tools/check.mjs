@@ -50,7 +50,7 @@ const count = (re, { skip = [], only = null } = {}) => {
 const RULES = {
   "P5 popover() outside ui.js": count(/(?<![\w.])popover\(/g, { skip: ["ui.js"] }),
   "line-kind checks outside their modules": (() => {
-    const own = { "isTab(": "tables.js", "isCyc(": "cycleplots.js", "isLo(": "lineout.js", "isGap(": "plugins/aperture4/gapseries.js" }, per = {};
+    const own = { "isTab(": "tables.js", "isCyc(": "plugins/analysis/period.js", "isLo(": "lineout.js", "isGap(": "plugins/aperture4/gapseries.js" }, per = {};
     for (const f of jsFiles) {
       const body = noComments(src[f]).split("\n").filter(l => !/^\s*import\b/.test(l)).join("\n");
       let n = 0;
@@ -83,7 +83,7 @@ for (const [k, n] of Object.entries(totals)) {
   } else ok(`${k}: ${n}${n < b ? ` (down from ${b} — run --update-baseline)` : ""}`);
 }
 // pure computation modules touch no DOM (P7, strict)
-for (const f of ["cycles.js", "fit.js", "stats.js", "results.js"]) {
+for (const f of ["cycles.js", "fit.js", "stats.js", "results.js", "plugins/analysis/stepsof.js"]) {   // D22: + the steps computation (analysis plugin)
   if (!src[f]) continue;
   /\bdocument\b|\bwindow\.|\blocalStorage\b|(?<![\w.])el\(/.test(noComments(src[f])) ? fail("P7 layers", `${f} uses the DOM`) : ok(`P7 layers: ${f} is pure`);
 }
@@ -126,7 +126,8 @@ for (const f of ["cycles.js", "fit.js", "stats.js", "results.js"]) {
   }
   // every register function a plugin gets is exported by its module
   const reg = { registerLineKind: "linekinds.js", registerTool: "settings.js", registerLineMenu: "lines.js", registerSymbols: "latex.js", registerOutputAction: "vars.js",
-    registerDataKind: "model.js", registerReadingOp: "measure.js", registerPlotMenu: "plugins.js" };   // v15.1 (D20): + data kinds, readings, plot menu
+    registerDataKind: "model.js", registerReadingOp: "measure.js", registerPlotMenu: "plugins.js",   // v15.1 (D20): + data kinds, readings, plot menu
+    registerOutputKind: "model.js" };                                                                // D22: + output kinds
   for (const [fn, f] of Object.entries(reg)) if (!new RegExp(`export function ${fn}\\b`).test(src[f] || "")) probs.push(`${f} does not export ${fn}`);
   if (!/loadPlugins\(/.test(noComments(src["app.js"] || ""))) probs.push("app.js does not call loadPlugins()");
   probs.length ? probs.forEach(p => fail("plugins", p)) : ok(`plugins: ${listed.length} listed (${listed.join(", ") || "none"}), ${plugFiles.length} plugin files checked like the core`);
@@ -171,6 +172,16 @@ test("fit.js: a straight line and an exponential are recovered", async () => {
   if (a.error || !(a.r2 > 0.999999)) throw new Error(`linear fit: ${a.error || a.r2}`);
   if (b.error || !close(b.params.tau, 7, 1e-6)) throw new Error(`exp fit tau ${b.params?.tau}`);
   return "ok";
+});
+test("steps (analysis plugin, stepsof.js): a box step is found with its 10–90 % span and excess (D22: moved from panel1d.js)", async () => {
+  const St = await import(pathToFileURL(path.join(VIS, "viewer", "plugins", "analysis", "stepsof.js")).href);
+  const xs = Array.from({ length: 101 }, (_, i) => i), ys = xs.map(x => (x >= 40 && x <= 44 ? 5 : 0) + 0.01 * Math.sin(x));
+  const r = St.stepsOf({ xs: Float64Array.from(xs), ys: Float64Array.from(ys) }, { w: 20, k: 3 });
+  if (!r || r.steps.length !== 1) throw new Error(`expected one step, got ${r ? r.steps.length : "none"}`);
+  const st = r.steps[0];
+  if (!(st.x0 <= 40 && st.x1 >= 44 && Math.abs(st.s10 - 40) < 0.1 && Math.abs(st.s90 - 44) < 0.1 && Math.abs(st.D - 25) < 0.5)) throw new Error(`step ${JSON.stringify(st)}`);
+  if (!(r.sigma > 0 && r.sigma < 0.05)) throw new Error(`sigma ${r.sigma}`);
+  return `step ${st.s10.toFixed(2)}–${st.s90.toFixed(2)}, excess ${st.D.toFixed(2)}`;
 });
 test("stats.js: one statistic for tools, readings and fits (gaps left out, ranges, crossing, single points)", async () => {
   const St = await import(pathToFileURL(path.join(JS, "stats.js")).href);
@@ -295,11 +306,24 @@ test("every tool is one definition with its own fields (settings.js TOOL_DEFS, P
   const where = entries.filter(e => !/where: "(any|1d|2d|map)"/.test(e) || !/folder: "(draw|curves|more)"/.test(e)).map(e => e.match(/^"(\w+)"/)?.[1]);
   if (where.length) throw new Error(`bad where / folder: ${where.join(", ")}`);
   // no if-chain on tool type for summaries, card rows or adding
-  for (const f of ["toolSummary", "toolControls", "addTool"]) {
+  for (const f of ["toolSummary", "toolControls", "addTool", "toolProblem"]) {   // D22: + toolProblem (a tool's own problem)
     const body = (s.match(new RegExp(`function ${f}\\b[\\s\\S]*?\\n}|const ${f} = [^\\n]*`)) || [""])[0];
     if (/t\.type === "/.test(body) || /what === "/.test(body)) throw new Error(`${f} still branches on the tool type`);
   }
-  return `${entries.length} tools: ${entries.map(e => e.match(/^"(\w+)"/)?.[1]).join(", ")}`;
+  // D22: a plugin's tools (api.registerTool({ key: … })) state the same fields, and render1D draws tools through their
+  // definitions (prepare1d / draw1d / legend1d), not an if-chain on the type (the core's lines, points, bands excepted)
+  const plugTools = [];
+  for (const f of plugFiles) for (const e of noComments(src[f]).split(/registerTool\(\{ key: /).slice(1)) {
+    const body = e.split(/\bregister[A-Z]\w*\(/)[0], k = body.match(/^"(\w+)"/)?.[1];
+    const miss = need.filter(x => x !== "key" && !new RegExp(`\\b${x}:`).test(body));
+    if (miss.length) throw new Error(`${f} tool ${k}: no ${miss.join(", ")}`);
+    plugTools.push(k);
+  }
+  const r1 = (noComments(src["panel1d.js"] || "").match(/export async function render1D[\s\S]*?\n}/) || [""])[0];
+  if (!r1) throw new Error("panel1d.js render1D not found");
+  const chain = [...new Set([...r1.matchAll(/t\.type === "(\w+)"/g)].map(m => m[1]))].filter(x => !["line", "point", "band"].includes(x));
+  if (chain.length) throw new Error(`panel1d.js render1D branches on the tool type ${chain.join(", ")}: use the tool definition's prepare1d / draw1d / legend1d`);
+  return `${entries.length} core tools: ${entries.map(e => e.match(/^"(\w+)"/)?.[1]).join(", ")}; plugin tools: ${plugTools.join(", ")}`;
 });
 
 // ---- 5. version consistency -------------------------------------------------------------------------------------------

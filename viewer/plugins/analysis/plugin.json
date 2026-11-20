@@ -1,0 +1,13 @@
+{
+  "about": "Read by js/plugins.js when this plugin is listed in index.json but not loaded: the tools and made lines of it a saved desktop may hold, so the core can say which plugin they need (their settings are kept).",
+  "tools": [
+    { "type": "fit", "what": "the fit tool" },
+    { "type": "mean", "what": "the averaged-curve tool" },
+    { "type": "period", "what": "the period tool" },
+    { "type": "steps", "what": "the steps tool" },
+    { "type": "stepbands", "what": "the steps-from-another-plot tool" }
+  ],
+  "lines": [
+    { "field": "cyc", "what": "a line made from a period tool" }
+  ]
+}

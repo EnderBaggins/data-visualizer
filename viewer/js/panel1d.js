@@ -6,13 +6,13 @@ import { S, store, eff, srcOf, fitAxis, indexer, pickIndex, pickCoord, extent, a
   isAn, anDef, anBindings, coordChoices, runsOf, isRunList } from "./model.js";
 import { compileFunction } from "./data.js";
 import { formulaToLatex } from "./latex.js";
-import { meanOf, fitCurve } from "./fit.js";
+import { meanOf } from "./fit.js";
 import { el, popover, closePopover, wheelFactor, dmLink, tipAt } from "./ui.js";
 import { openEditLine, openListValue, lineName } from "./lines.js";
-import { tableOf, rowText, tabLineText } from "./tables.js";   // v14.0: tables
-import * as CYC from "./cycles.js";                                                                  // v14.1: period tool
+import { tableOf, rowText } from "./tables.js";   // v14.0: tables
 import { madeKind, lineCan } from "./linekinds.js";                                       // v14.4: the line-source registry
-import { timeUnits, panelRun, setRunContext, setViewContext, curveValue, READING_OPS, dataKindOf, missingKindOf, missingKindText, splitKind, lineKind, opLabel, putOutput, liveOutput, outputCurve, curveStat, toolValues, setToolValues, yAxisId, ownY } from "./model.js";
+import { timeUnits, panelRun, setRunContext, setViewContext, curveValue, READING_OPS, dataKindOf, missingKindOf, missingKindText, splitKind, lineKind, opLabel, curveStat, toolValues, setToolValues, yAxisId, ownY, missingToolOf, missingToolText, missingLineOf } from "./model.js";
+import { toolDefOf } from "./settings.js";                                                          // D22: a tool's own drawing
 import { fontSize, runTip } from "./vars.js";
 import { canCompute, jobFor, computeBox } from "./cacheable.js";
 
@@ -382,15 +382,15 @@ export async function asDrawn(s, curves, T, over = null) {
 // Human 2026-11-09 (via the intermittent-discharge session): "I like the slope of the drop plot is there a way to do that
 // in visualizer without caching everything? should be pretty cheap on the 1D stuff". Computed from the curve as drawn
 // (x after its function, so per R* when x is in R*), nothing stored. Definitions as claude_work/scratch/gap-proto/steps.py.
-/** The curve's finite points in rising x: [X, Y] (plain arrays). */
-function risingPoints(c) {
+/** The curve's finite points in rising x: [X, Y] (plain arrays). (D22: exported for the analysis plugin's steps) */
+export function risingPoints(c) {
   const idx = [];
   for (let j = 0; j < c.xs.length; j++) if (Number.isFinite(c.xs[j]) && Number.isFinite(c.ys[j])) idx.push(j);
   idx.sort((a, b) => c.xs[a] - c.xs[b]);
   return [idx.map(j => c.xs[j]), idx.map(j => c.ys[j])];
 }
 /** y at x in rising (X, Y), held at the end values beyond them (as numpy's interp). */
-function interpHeld(X, Y, x) { return x <= X[0] ? Y[0] : x >= X[X.length - 1] ? Y[Y.length - 1] : interp1(X, Y, x); }
+export function interpHeld(X, Y, x) { return x <= X[0] ? Y[0] : x >= X[X.length - 1] ? Y[Y.length - 1] : interp1(X, Y, x); }
 /** A line's slope along x (line.slope = {sign: 1 | −1, w}): each value becomes sign × (y(x + w/2) − y(x − w/2)) / w, the
  *  curve held at its ends. After the line's scale, before f(y). (v8.31: the automatic "drop" sign is gone — the human
  *  chooses d/dx or −d/dx; desktops that had it are moved to −d/dx when they open, and one still carrying it is drawn with
@@ -427,40 +427,7 @@ export function slopeAlong(c) {
   c.keyed = [["q", qn], ...(c.keyed || []).slice(1), ["slope", win]];
   c.slopeNote = `(${sg < 0 ? "−d/dx, " : ""}w = ${R.fmt(w)})`;
 }
-const median = a => { if (!a.length) return NaN; const s = [...a].sort((p, q) => p - q), m = s.length >> 1; return s.length % 2 ? s[m] : 0.5 * (s[m - 1] + s[m]); };
-/** The steps tool on one curve (t = {w, k}): background b = running median over w along x, σ = 1.4826 × the median
- *  absolute deviation of e = y − b, steps = runs with e > kσ widened to where e falls back to ≤ 0 on each side (merged
- *  where they touch), each with its 10–90 % span of the excess ∫e dx. The median and σ are taken over x (the curve
- *  resampled to a uniform grid of w/40), so dense points (a traced line near the star) do not weigh more.
- *  {xs, b, thr, sigma, steps: [{a, z, s10, s90, D}]} or null. */
-export function stepsOf(c, t) {
-  const W = curveNum(t.w, c, 3), K = curveNum(t.k, c, 3);   // v10.0: per curve (a line length L: each line's own)
-  const [X, Y] = risingPoints(c);
-  if (X.length < 3 || !(W > 0)) return null;
-  const x0 = X[0], x1 = X[X.length - 1], h = Math.max(W / 40, (x1 - x0) / 4000), n = Math.floor((x1 - x0) / h) + 1;
-  const G = Array.from({ length: n }, (_, i) => interpHeld(X, Y, x0 + i * h)), half = Math.round(W / 2 / h);
-  const B = G.map((_, i) => median(G.slice(Math.max(0, i - half), Math.min(n, i + half + 1))));
-  const E = G.map((g, i) => g - B[i]), mE = median(E), sigma = 1.4826 * median(E.map(e => Math.abs(e - mE)));
-  const grid = Array.from({ length: n }, (_, i) => x0 + i * h);
-  const b = X.map(x => interpHeld(grid, B, x)), e = Y.map((y, j) => y - b[j]), hot = e.map(v => v > K * sigma);
-  const steps = [];
-  for (let i = 0; i < X.length;) {
-    if (!hot[i]) { i++; continue; }
-    let a = i, z = i;
-    while (z + 1 < X.length && hot[z + 1]) z++;
-    while (a > 0 && e[a - 1] > 0) a--;
-    while (z + 1 < X.length && e[z + 1] > 0) z++;
-    if (steps.length && a <= steps.at(-1).z) steps.at(-1).z = z; else steps.push({ a, z });
-    i = z + 1;
-  }
-  for (const st of steps) {                              // where 10 % and 90 % of its excess ∫ max(e, 0) dx lie
-    const cum = [0];
-    for (let j = st.a + 1; j <= st.z; j++) cum.push(cum.at(-1) + 0.5 * (Math.max(e[j], 0) + Math.max(e[j - 1], 0)) * (X[j] - X[j - 1]));
-    const D = cum.at(-1), xsSeg = X.slice(st.a, st.z + 1);
-    Object.assign(st, { x0: X[st.a], x1: X[st.z], D, s10: D > 0 ? interp1(cum, xsSeg, 0.1 * D) : X[st.a], s90: D > 0 ? interp1(cum, xsSeg, 0.9 * D) : X[st.z] });
-  }
-  return { xs: Float64Array.from(X), b: Float64Array.from(b), thr: Float64Array.from(b, v => v + K * sigma), sigma, steps };
-}
+// (D22: the steps tool's computation, stepsOf, moved to the analysis plugin: plugins/analysis/stepsof.js)
 /** The x window of an axis with a function, not zoomed: the extent of the points as drawn (of those inside the desktop's
  *  time range on a time axis), else of the axis's values moved by f; centred by ±. */
 function movedRange(s, curves, X) {
@@ -616,6 +583,7 @@ export async function lineCurve(s, line, multiRun, sub = null) {
   if (isFn(line)) return fnCurve(s, line, sub, s.view ? [s.view.x0, s.view.x1] : axisExtent(s.xaxis, s.logx));
   const run = runOf(line.run), src = srcOf(line.run, line.q);
   // v14.9: a line with no quantity, no function and no known kind was made by a plugin that is not loaded (kept as it is)
+  if (line.q == null && missingLineOf(line)) return { error: missingToolText(missingLineOf(line)) };   // D22: its plugin.json names it
   if (line.q == null) return { error: `a line made by a plugin that is not loaded (${Object.keys(line).filter(k => !["id", "run", "label", "color", "dash", "width", "visible", "q", "picks", "pickAs", "pickValues", "timeMode", "scale", "yaxis"].includes(k)).join(", ") || "unknown kind"}): add the plugin to viewer/plugins/index.json` };
   if (!src) return { error: run ? `${line.q} is not cached for ${run}: compute it in the data manager (🗂 data), then ⟳ refresh data` : `variable ${line.run.slice(1)} is missing` };
   const miss = missingKindOf(src);                       // v15.1: data only a plugin that is off can draw
@@ -770,7 +738,7 @@ export async function applyScales(s, curves) {
 // ---- compact legend (v5.9, human 2026-10-05: "how do I make the legend labels not auto clunky?") -------------------
 /** A line's own label as typed, with {name} variables filled in and {v} = this curve's list value (v5.10: nothing is
  *  appended automatically; without a curve, {v} and the separator before it are dropped). null = no own label. */
-function ownLabel(l, c) {
+export function ownLabel(l, c) {
   if (l.label === null || l.label === undefined) return null;
   const v = c?.sub ? (c.sub.run ?? R.fmt(c.sub.value ?? c.sub.time)) : null;     // v8.18: a dataset list's {v} = the dataset
   const t = v !== null ? String(l.label).replace(/\{v\}/g, v) : String(l.label).replace(/\s*[·:=,-]?\s*\{v\}/g, "");
@@ -873,49 +841,15 @@ export async function render1D(members) {
     const odd = [...kinds].filter(k => s.ykind && k !== s.ykind && (splitKind(k).mode || splitKind(s.ykind).mode));
     if (odd.length) errors.push(`this plot's y axis is "${s.ykind}": its ${odd.map(k => `"${k}"`).join(", ")} lines belong in a plot of their own (a line's "→ its slope" / "→ its d/dt" makes one)`);
     for (const e of T.errors) if (!errors.includes(e)) errors.push(e);   // v8.27: a per-curve value missing for f(y)
-    // v5.14 (human 2026-10-06: "mean along the given axis … mean along s/smax"): a mean tool along another axis than x
-    // draws, for each curve, the same line averaged over that axis (dashed, in the curve's colour)
-    const toolCurves = [];
+    // D22: a tool's own work before the y range — its definition's prepare1d (settings.js; the analysis plugin: the
+    // averaged curve's curves, the steps tool's background and its named output). Was an if-chain here.
+    const toolCurves = [], prepared = new Map(), env1 = { panel, s, T, curves, multiRun, errors, toolCurves };
     for (const t of s.tools || []) {
-      if (!t.visible || t.type !== "mean" || !t.along) continue;
-      const done = new Set();
-      for (const c of curves) {
-        if (c.isFn || !c.src || (t.line != null && c.line.id !== t.line) || !c.src.dims.includes(t.along) || fitAxis(c.src, s.xaxis)?.dim === t.along) continue;
-        // averaged over the list's own axis: one curve (per dataset of a dataset list, v8.18)
-        const sub = c.sub && c.sub.dim === t.along ? (c.sub.run !== undefined ? { run: c.sub.run, k: c.sub.k, n: c.sub.n, ref: c.sub.ref } : null) : c.sub;
-        const key = sub ? slotKey(c.line, sub) : String(c.line.id);
-        if (done.has(key)) continue;
-        done.add(key);
-        const l2 = t.along === "time" ? { ...c.line, timeMode: "mean", timeFrom: t.from ?? null, timeTo: t.to ?? null }
-          : { ...c.line, picks: { ...(c.line.picks || {}), [t.along]: { mean: true, from: t.from ?? null, to: t.to ?? null } } };
-        const r = await lineCurve(s, l2, multiRun, sub).catch(e => ({ error: String(e?.message || e) }));
-        if (r.error) { if (!errors.includes(`mean: ${r.error}`)) errors.push(`mean: ${r.error}`); continue; }
-        await asDrawn(s, [r.curve], T);                   // v14.4: as drawn
-        toolCurves.push({ tid: t.id, parent: c, curve: r.curve });
-      }
+      if (!t.visible) continue;
+      const def = toolDefOf(t);
+      if (def?.prepare1d) prepared.set(t.id, await def.prepare1d(env1, t));
     }
-    // v8.29: the steps tool — each chosen curve's background b and threshold b + kσ (tool curves: in the y range) and its
-    // steps (shaded when drawn)
-    const toolSteps = [];
-    for (const t of s.tools || []) {
-      if (!t.visible || t.type !== "steps") continue;
-      for (const c of curves) {
-        if (c.isFn || (t.line != null && c.line.id !== t.line)) continue;
-        const r = stepsOf(c, t);
-        if (!r) continue;
-        toolSteps.push({ tid: t.id, parent: c, r });
-        if (t.showBg !== false) toolCurves.push({ tid: t.id, parent: c, curve: { xs: r.xs, ys: r.b }, role: "bg" });
-        if (t.showThr !== false) toolCurves.push({ tid: t.id, parent: c, curve: { xs: r.xs, ys: r.thr }, role: "thr" });
-      }
-      // v8.32: a named steps tool publishes its steps (the sidebar's Outputs tab; "$name.from" …; steps from an output)
-      if (t.name) {
-        const out = { kind: "steps", panel: panel.id, toolId: t.id, x: JSON.stringify([s.xaxis, s.xfn || ""]), xlabel: T.x ? T.x.label : axisLabel(s.xaxis),
-          w: num1(t.w, 3), k: num1(t.k, 3), curves: toolSteps.filter(o => o.tid === t.id).map(o => ({ at: o.parent.at ? { run: o.parent.at.run, d: { ...o.parent.at.d } } : null,
-            label: o.parent.label, sigma: o.r.sigma, steps: o.r.steps.map(st => ({ x0: st.x0, x1: st.x1, s10: st.s10, s90: st.s90, D: st.D })) })) };
-        putOutput(t.name, out);                           // v14.4: the result store (its users redraw on a change)
-      }
-    }
-    items.push({ panel, sp, s, T, lines, slots, curves, errors, toolCurves, toolSteps, follows: res.find(r => r.follows)?.follows, followSrcs: [...new Set(res.filter(r => r.follows).map(r => r.follows.src))] });
+    items.push({ panel, sp, s, T, lines, slots, curves, errors, toolCurves, prepared, follows: res.find(r => r.follows)?.follows, followSrcs: [...new Set(res.filter(r => r.follows).map(r => r.follows.src))] });
   }
   // shared y range (linked panels with identical y settings)
   const groups = new Map();
@@ -1032,14 +966,14 @@ export async function render1D(members) {
     }
     if (restyled) onAutoChange?.();
     const byKey = new Map(curves.map(c => [c.key, c]));
-    const cw0 = curves.find(c => c.window);               // v14.1: a period tool's window, shaded (its sliding plots)
+    const cw0 = curves.find(c => c.window);               // v14.1: a curve may carry an x window, shaded (the period tool's sliding plots)
     if (cw0) {
       const A = ax.to(Math.max(cw0.window[0], Math.min(x0, x1))), B = ax.to(Math.min(cw0.window[1], Math.max(x0, x1)));
       if (Number.isFinite(A) && Number.isFinite(B)) { ctx.globalAlpha = 0.1; ctx.fillStyle = "#7a3fb0"; ctx.fillRect(Math.min(A, B), plot.y, Math.abs(B - A), plot.h); ctx.globalAlpha = 1; }
     }
     for (const c of curves) {
       c.display = ownLabel(c.line, c) ?? c.label;
-      if (c.peak) R.drawPoint(ctx, plot, ax, ay, c.peak.x, c.peak.y, colorOfSlot(c.line, c.sub, c.key), 4.5, null, dpr);   // v14.1: the chosen peak
+      if (c.peak) R.drawPoint(ctx, plot, ax, ay, c.peak.x, c.peak.y, colorOfSlot(c.line, c.sub, c.key), 4.5, null, dpr);   // v14.1: a curve may carry a marked point (an autocorrelation's chosen peak)
       if (c.isTab || c.markers) {                         // v14.0: a table's points (markers; joined if asked)
         const col = colorOfSlot(c.line, c.sub, c.key);
         if (c.line.joined) R.drawPolyline(ctx, c.xs, c.ys, ax, ay, col, num1(c.line.width, 1.2) * dpr, c.line.dash || "solid", dpr);
@@ -1052,138 +986,15 @@ export async function render1D(members) {
     compactLabels(curves);                                // short curve names for the fit formulas
     const info = [], win = [Math.min(x0, x1), Math.max(x0, x1)];
     setViewContext({ x0: win[0], x1: win[1], y0: Math.min(it.Y0, it.Y1), y1: Math.max(it.Y0, it.Y1) });   // v8.12: view_x0 … for tools / fits
+    const env = { panel, s, T, ctx, plot, ax, ay, dpr, curves, win, tx, info, toolCurves: it.toolCurves, colorOfSlot,   // D22: for a tool's draw1d / legend1d
+      error: m => { if (!it.errors.includes(m)) it.errors.push(m); } };
     for (const t of s.tools || []) {
       if (!t.visible) continue;
-      if (t.type === "stepbands") {                       // v8.32: another tool's steps, each curve its own field line's
-        const o = liveOutput(t.source);
-        if (!o) { const m = `steps from another plot: there is no steps tool named "${t.source ?? "?"}"`; if (!it.errors.includes(m)) it.errors.push(m); continue; }
-        if (o.x !== JSON.stringify([s.xaxis, s.xfn || ""])) { const m = `steps of ${t.source} are along "${o.xlabel}", not this plot's x`; if (!it.errors.includes(m)) it.errors.push(m); }
-        ctx.save(); ctx.beginPath(); ctx.rect(plot.x, plot.y, plot.w, plot.h); ctx.clip();
-        for (const c of curves) {
-          const oc = c.isFn ? null : outputCurve(o, c.at);
-          if (!oc) continue;
-          ctx.fillStyle = colorOfSlot(c.line, c.sub, c.key);
-          for (const st of oc.steps) for (const [a, b, al] of [[st.x0, st.x1, t.whole !== false ? 0.1 : 0], [st.s10, st.s90, t.core !== false ? 0.22 : 0]]) {
-            const X0 = ax.to(a), X1 = ax.to(b);
-            if (!al || !Number.isFinite(X0) || !Number.isFinite(X1)) continue;
-            ctx.globalAlpha = al; ctx.fillRect(Math.min(X0, X1), plot.y, Math.max(1, Math.abs(X1 - X0)), plot.h);
-          }
-        }
-        ctx.globalAlpha = 1; ctx.restore();
-        continue;
-      }
-      if (t.type === "steps") {                           // v8.29: steps shaded (light: widened, dark: 10–90 %), b dashed, b + kσ dotted
-        const mine = it.toolSteps.filter(o => o.tid === t.id);
-        ctx.save(); ctx.beginPath(); ctx.rect(plot.x, plot.y, plot.w, plot.h); ctx.clip();
-        if (t.shade !== false) for (const o of mine) {
-          ctx.fillStyle = colorOfSlot(o.parent.line, o.parent.sub, o.parent.key);
-          for (const st of o.r.steps) for (const [a, b, al] of [[st.x0, st.x1, 0.1], [st.s10, st.s90, 0.22]]) {
-            const X0 = ax.to(a), X1 = ax.to(b);
-            if (!Number.isFinite(X0) || !Number.isFinite(X1)) continue;
-            ctx.globalAlpha = al; ctx.fillRect(Math.min(X0, X1), plot.y, Math.max(1, Math.abs(X1 - X0)), plot.h);
-          }
-        }
-        ctx.globalAlpha = 1;
-        for (const o of it.toolCurves.filter(o => o.tid === t.id))
-          R.drawPolyline(ctx, o.curve.xs, o.curve.ys, ax, ay, colorOfSlot(o.parent.line, o.parent.sub, o.parent.key), num1(t.width, 1.1) * dpr, o.role === "thr" ? "dotted" : "dashed", dpr);
-        ctx.restore();
-        if (t.show !== false) for (const o of mine) {
-          const name = (o.parent.subLabel || (ownLabel(o.parent.line, o.parent) ?? o.parent.compact ?? o.parent.label));
-          // the three largest by excess ∫(curve − b) dx (their 10–90 % spans), largest first; the rest counted
-          const st = o.r.steps, top = [...st].sort((p, q) => q.D - p.D).slice(0, 3);
-          const list = top.map(x => `${R.fmt(x.s10)}–${R.fmt(x.s90)} (${R.fmt(x.D)})`).join(", ") + (st.length > top.length ? ` +${st.length - top.length}` : "");
-          const flat = !(o.r.sigma > 0) ? " (the background follows the curve: widen its window)" : "";
-          info.push({ color: colorOfSlot(o.parent.line, o.parent.sub, o.parent.key), tool: t,
-            text: `${mine.length > 1 ? name + ": " : ""}σ = ${R.fmt(o.r.sigma)}${flat} · ${st.length ? `${st.length} step${st.length > 1 ? "s" : ""}, largest: ${list}` : "no steps"}` });
-        }
-        continue;
-      }
-      if (t.type === "mean" && t.along) {                 // v5.14: averaged along another axis
-        ctx.save(); ctx.beginPath(); ctx.rect(plot.x, plot.y, plot.w, plot.h); ctx.clip();
-        for (const o of it.toolCurves.filter(o => o.tid === t.id))
-          R.drawPolyline(ctx, o.curve.xs, o.curve.ys, ax, ay, t.curveColors !== false ? colorOfSlot(o.parent.line, o.parent.sub, o.parent.key) : t.color, num1(t.width, 1.2) * dpr, t.dash || "dashed", dpr);
-        ctx.restore();
-        continue;
-      }
-      // v14.1 (human 2026-11-13, the research session's cycle-period method, claude_work/lib/cycles.py): the period of each
-      // curve inside the window (shaded), its regularity and number of cycles, and (curves on one time grid) their lags
-      if (t.type === "period") {
-        const mine = curves.filter(c => !c.isFn && (t.line == null || c.line.id === t.line));
-        const [a, b] = overRange(s, t, win, T.x?.g), lo = Math.min(a, b), hi = Math.max(a, b), how = t.detrend || "linear";
-        const X0 = ax.to(Math.max(lo, win[0])), X1 = ax.to(Math.min(hi, win[1]));
-        if (Number.isFinite(X0) && Number.isFinite(X1)) {
-          ctx.save(); ctx.beginPath(); ctx.rect(plot.x, plot.y, plot.w, plot.h); ctx.clip();
-          ctx.globalAlpha = 0.08; ctx.fillStyle = t.color || "#7a3fb0"; ctx.fillRect(Math.min(X0, X1), plot.y, Math.abs(X1 - X0), plot.h); ctx.restore();
-        }
-        const res = mine.map(c => {
-          const [tw, yw] = CYC.window([...c.xs], [...c.ys], Number.isFinite(lo) ? lo : null, Number.isFinite(hi) ? hi : null);
-          let r;
-          try { r = tw.length >= 4 ? CYC.period(tw, yw, how) : null; } catch (e) { r = { period: NaN, regularity: NaN, n_cycles: NaN, ac: [], lag: [], note: String(e?.message || e) }; }
-          return { c, tw, yw, r: r || { period: NaN, regularity: NaN, n_cycles: NaN, ac: [], lag: [], note: "fewer than 4 points in the window" } };
-        });
-        const n0 = res[0]?.tw.length, sameGrid = res.length > 1 && res.every(o => o.tw.length === n0 && o.tw.every((x, i) => Math.abs(x - res[0].tw[i]) <= 1e-9 * Math.max(1, Math.abs(x))));
-        const L = sameGrid && n0 >= 4 ? CYC.lines(res[0].tw, res.map(o => o.yw), how, res.map(o => o.r.regularity), res.map(o => o.r.period)) : null;
-        const vals = { win: [lo, hi], how, width: num1(t.width, 32), step: num1(t.step, 2), xaxis: s.xaxis, inPhase: L ? L.in_phase : NaN, ref: L ? L.ref : null,
-          curves: res.map((o, k) => ({ label: o.c.label, display: o.c.display ?? o.c.label, at: o.c.at ? { run: o.c.at.run, d: { ...o.c.at.d } } : null, color: colorOfSlot(o.c.line, o.c.sub, o.c.key),
-            period: o.r.period, regularity: o.r.regularity, n_cycles: o.r.n_cycles, note: o.r.note, candidate: o.r.candidate ?? null, lag: L ? L.lag[k] : NaN,
-            ac: { x: o.r.lag, y: o.r.ac }, src: { xs: [...o.c.xs], ys: [...o.c.ys] } })) };
-        vals.sig = JSON.stringify([vals.win, how, vals.width, vals.step, vals.curves.map(v => [v.label, v.period, v.regularity, v.lag, v.src.ys.length])]);
-        setToolValues(panel.id, t.id, vals, vals.sig);    // v14.4: the plots made from it redraw when sig changes (change bus)
-        if (t.show !== false) for (const v of vals.curves) info.push({ color: v.color, tool: t,
-          text: `${mine.length > 1 ? v.display + ": " : ""}${Number.isFinite(v.period) ? `period ${R.fmt(v.period)} · regularity ${v.regularity.toFixed(2)} · ${R.fmt(v.n_cycles)} cycles` : "no clear cycle"}` });
-        continue;
-      }
-      if (t.type === "mean" || t.type === "fit") {        // v5.13: one per curve of the chosen line(s), on the curves as drawn
-        let mine = curves.filter(c => t.line == null || c.line.id === t.line).filter(c => t.type === "mean" || !c.isFn);
-        // v14.0.1 (human 2026-11-13: no fit on a table plot, "they are of different datsets though"): a table line's points
-        // are one curve per dataset (its colours); a fit or mean takes all of the line's points together
-        if (mine.some(c => c.isTab)) {
-          const merged = new Map();
-          mine = mine.flatMap(c => {
-            if (!c.isTab) return [c];
-            const pts = [...c.xs].map((x, j) => [x, c.ys[j]]);
-            if (merged.has(c.line.id)) { merged.get(c.line.id).pts.push(...pts); return []; }
-            const m = { pts, c }; merged.set(c.line.id, m); return [m];
-          }).map(o => {
-            if (!o.pts) return o;
-            o.pts.sort((u, v) => u[0] - v[0]);
-            const name = tabLineText(o.c.line);
-            return { ...o.c, xs: Float64Array.from(o.pts.map(q => q[0])), ys: Float64Array.from(o.pts.map(q => q[1])), sub: null, key: String(o.c.line.id),
-              label: name, compact: name, subLabel: null, at: null, mergedTab: true };
-          });
-        }
-        const [a, b] = overRange(s, t, win, T.x?.g), oneLine = new Set(mine.map(c => c.line.id)).size === 1;
-        const tag = c => (mine.length < 2 ? "" : `${(oneLine && c.subLabel) || (ownLabel(c.line, c) ?? c.compact)}: `);   // what tells the fits apart
-        const fv = [];                                    // v14.0: each curve's fit numbers (its card's "→ table")
-        for (const c of mine) {
-          const col = c.mergedTab ? c.line.color || t.color : t.curveColors !== false ? colorOfSlot(c.line, c.sub, c.key) : t.color;   // v14.0.1
-          if (t.type === "mean") {
-            const m = meanOf(c.xs, c.ys, a, b);
-            R.drawRule(ctx, plot, ay, m, false, col, num1(t.width, 1.2), t.dash || "dashed", dpr);
-            if (t.label) R.drawRuleLabel(ctx, plot, ay, m, false, col, subVars(t.label, tx), dpr);
-            continue;
-          }
-          const fr = fitCurve(c.xs, c.ys, t.model || "poly", num1(t.degree, 2), a, b, T.x ? T.x.tex : s.xaxis === "time" ? "t" : "x", { tau: t.expShow === "tau" });
-          if (fr.error) { if (!it.errors.includes(`fit: ${fr.error}`)) it.errors.push(`fit: ${fr.error}`); continue; }
-          fv.push({ label: c.label, at: c.at ? { run: c.at.run, d: { ...c.at.d } } : null, params: fr.params, x0: fr.x0, x1: fr.x1 });
-          const lo = Math.max(fr.x0, win[0]), hi = Math.min(fr.x1, win[1]), n = 200, lg = s.logx && lo > 0;
-          const FX = new Float64Array(n), FY = new Float64Array(n);
-          for (let j = 0; j < n; j++) { const x = lg ? lo * Math.pow(hi / lo, j / (n - 1)) : lo + ((hi - lo) * j) / (n - 1); FX[j] = x; FY[j] = fr.f(x); }
-          ctx.save(); ctx.beginPath(); ctx.rect(plot.x, plot.y, plot.w, plot.h); ctx.clip();
-          R.drawPolyline(ctx, FX, FY, ax, ay, col, num1(t.width, 1.4) * dpr, t.dash || "dashed", dpr);
-          ctx.restore();
-          if (t.show !== false) {
-            // v8.11: its own label ({c} = the curve's name; empty = automatic), R² and the fitted x range on / off
-            const cname = (oneLine && c.subLabel) || (ownLabel(c.line, c) ?? c.compact);
-            const pre = t.label ? subVars(String(t.label).replace(/\{c\}/g, cname), tx) + " " : tag(c);
-            const xn = T.x ? T.x.label : s.xaxis === "time" ? "t" : axisInfo(s.xaxis).label;
-            info.push({ color: col, tool: t, text: pre + fr.text + (t.showR2 !== false ? `   R² = ${fr.r2.toFixed(3)}` : "")
-              + (t.showRange ? `   (${xn} ${R.fmt(fr.x0)}–${R.fmt(fr.x1)})` : "") });
-          }
-        }
-        if (t.type === "fit") setToolValues(panel.id, t.id, fv);
-        continue;
-      }
+      // D22: a tool with its own drawing (its definition's draw1d: the analysis plugin's fit, averaged curve, period, steps,
+      // steps from another plot); a tool of a plugin that is not loaded says so and draws nothing
+      const def = toolDefOf(t);
+      if (def?.draw1d) { def.draw1d(env, t, it.prepared.get(t.id)); continue; }
+      if (!def && missingToolOf(t)) { env.error(missingToolText(missingToolOf(t))); continue; }
       // v12.0 (draw): a line or a point read off each curve (mean, max, min, x at the max, a crossing), its values kept
       // for its card (TOOL_VALUES; v12.2: "→ variable" there makes a measured variable of the same reading)
       if ((t.type === "line" || t.type === "point") && t.mode === "data") {
@@ -1291,9 +1102,7 @@ export async function render1D(members) {
       if (single && own(lines[0]) != null && !/\{v\}/.test(lines[0].label || "")) header = [own(lines[0]), ...common.filter(x => !curves.some(c => c.subLabel === x))].join(" · ");
     }
     if (mode === "compact" && entries.length > 1 && common.length && header === null) header = common.join(" · ");
-    for (const t of s.tools || []) if (t.visible && t.type === "mean" && t.along && it.toolCurves.some(o => o.tid === t.id))
-      entries.push({ label: t.label ? subVars(t.label, tx) : `mean over ${t.along === "time" ? "t" : axisInfo(t.along).label}`, color: "#555555",
-        dash: t.dash || "dashed", width: num1(t.width, 1.2), sep: true, tool: t });
+    for (const t of s.tools || []) if (t.visible) entries.push(...(toolDefOf(t)?.legend1d?.(env, t) || []));   // D22: a tool's own entries (an averaged curve)
     for (const c of curves) if (c.line.label == null && mode === "compact") c.display = c.compact;
     hits.info = infoHits;
     hits.legend = mode === "off" ? [] : R.drawLegend(ctx, plot, entries, dpr, header, s.legendPos ?? null);

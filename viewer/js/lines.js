@@ -5,7 +5,7 @@
 // dataset of the panel (swap / remove all its lines) and "+ dataset" (this panel's lines for another dataset).
 import * as R from "./render.js";
 import { S, store, srcOf, fitAxis, ctxPanel, eff, panelRun, datatypes, menuSections, coordChoices, newLine, newId, indexer, pickIndex, pickCoord, isRef, runOf, runLabel, runNames, numOf, isFn, isMeanPick,
-  isAn, anDef, anBindings, newAnalyticLine, PREFS, timeUnits, axisLabel, runsOf, isRunList, varOf, listOf, listColor, listEntries, newVarName, usesOf, splitKind, lineKind, opLabel, axisInfo } from "./model.js";
+  isAn, anDef, anBindings, newAnalyticLine, PREFS, timeUnits, axisLabel, runsOf, isRunList, varOf, listOf, listColor, listEntries, newVarName, usesOf, splitKind, lineKind, opLabel, axisInfo, missingLineOf } from "./model.js";
 import { compileFunction } from "./data.js";
 import { el, select, popover, closePopover, colorPicker, colorButton } from "./ui.js";
 import { DASHES } from "./render.js";
@@ -13,7 +13,6 @@ import { runSelect, numRef, parseNumRef, newMeasuredVar, varPick, fontSize, runL
   compareBox, groupedRunTicks } from "./vars.js";
 import { expansions, normSmooth } from "./panel1d.js";
 import { tableOf, numericCols, parseTabAxis, newTabLine, tables } from "./tables.js";   // v14.0
-import { CYC_WHAT } from "./cycleplots.js";   // v14.1
 import { loLineText } from "./lineout.js";   // v14.2
 import { madeKind, isRecordedLine } from "./linekinds.js";
 
@@ -413,26 +412,7 @@ export function editLo(panel, line, lines, push, box, api, defaultColor) {
       el("button", { onclick: closePopover }, "done")));
   keepOnScreen(box);
 }
-/** v14.1: the editor of a period-tool plot's line — what it shows, style. It follows the tool (window, detrend). */
-export function editCyc(panel, line, lines, push, box, api, defaultColor) {
-  const draw = () => {
-    box.replaceChildren(
-      el("div", { class: "pop-title" }, "from a period tool"),
-      el("div", { class: "pop-row" }, el("span", { class: "lab" }, "shows"), select(Object.entries(CYC_WHAT), line.cyc.what, v => { line.cyc.what = v; push(true); draw(); },
-        { title: "per-curve kinds need this plot's x to be the pick the curves differ by (r_max …); the others: lag (autocorrelation) or the source's x (sliding)" })),
-      el("div", { class: "pop-row" }, "style",
-        el("select", { onchange: e => { line.dash = e.target.value; push(); } }, Object.keys(DASHES).map(k => el("option", { value: k, selected: k === (line.dash || "solid") }, k))),
-        "width", numRef(line.width ?? 1.4, w => { if (isRef(w) || w > 0) { line.width = w; push(); } }, { size: 3 }),
-        el("label", { class: "chk" }, el("input", { type: "checkbox", checked: line.visible !== false, onchange: e => { line.visible = e.target.checked; push(); } }), "shown")),
-      colorPicker(line.color || defaultColor, col => { line.color = col; push(); }, api.usedColors()),
-      el("div", { class: "dim" }, "Made from a period tool on another plot: it changes when that tool's window or detrend changes. Its x: lag (autocorrelation), the source's x (sliding), or the pick the curves differ by (per curve)."),
-      el("div", { class: "pop-row pop-sep" },
-        el("button", { onclick: () => { lines.splice(lines.indexOf(line), 1); closePopover(); push(true); } }, "remove line"),
-        el("button", { onclick: closePopover }, "done")));
-    keepOnScreen(box);
-  };
-  draw();
-}
+// (D22: the editor of a period-tool plot's line, editCyc, moved to the analysis plugin: plugins/analysis/period.js)
 /** Editor of a function line y = f(x) (v5.13, human 2026-10-06: "plotting analytic functions … a quadratic to see how it
  *  fits data"). The formula takes x, t (the slider's time), number variables (a list draws one curve per value; a
  *  measured variable its value now) and, if a dataset is chosen, the numbers of its config. Live as you type. */
@@ -743,13 +723,14 @@ export function drawnFor(line, s) {
 /** v14.3.2: a line read from a recorded quantity (it has a source and a dataset), not one made by a tool or a table. */
 export { isRecordedLine };                                     // v14.4: defined in linekinds.js (the line-source registry)
 /** v14.3.2: a line's name for lists (⚙ line list, tool cards): its bare name, plus its dataset when it has one. */
-export const lineName = l => (l.label || !(isRecordedLine(l) || isAn(l)) ? bareName(l) : `${bareName(l)} · ${runLabel(l.run)}`);
+export const lineName = l => (l.label || !(isRecordedLine(l) || isAn(l)) || (l.q == null && missingLineOf(l)) ? bareName(l) : `${bareName(l)} · ${runLabel(l.run)}`);
 /** A line's name without its dataset (the list says which): its label, else its quantity (d/dt, ± average). */
 export function bareName(l) {
   if (l.label) return l.label;
   if (isAn(l)) return anDef(l).label;
   if (isFn(l)) return `y = ${l.fn}`;
   if (madeKind(l)) return madeKind(l).name(l);                                                     // v14.4: linekinds.js
+  if (l.q == null && missingLineOf(l)) return missingLineOf(l).what;                                // D22: of a plugin that is not loaded
   const q = srcOf(l.run, l.q)?.label ?? l.q, hv = v => (isRef(v) ? v.slice(1) : v);   // v10.1.1: its own smoothing, time average
   const sm = l.smooth && typeof l.smooth === "object" && "h" in l.smooth && l.smooth.h != null && l.smooth.h !== "" ? `${l.smooth.kind === "median" ? "median" : "mean"} over ±${hv(l.smooth.h)}` : null;
   const ta = l.tavg != null && l.tavg !== "" && (isRef(l.tavg) || Number(l.tavg) > 0) ? `mean over t ± ${hv(l.tavg)}` : null;

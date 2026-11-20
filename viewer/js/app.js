@@ -15,7 +15,6 @@ import { render1D, attach1D, followSources1D, setAutoChange, normSmooth } from "
 import { onResult, getResult } from "./results.js";        // v14.4: the change bus
 import { nameTaken } from "./model.js";
 import { setTablesApi, newTabLine, tabAxis, tableOf, colLabel, refreshTableCard } from "./tables.js";   // v14.0 (v14.7: + the table card)
-import { setCycApi, newCycLine, CYC_WHAT, isPerCurve, curveDim } from "./cycleplots.js";   // v14.1
 import { setLineoutApi, newLoLine, loGeom, loDefault, loPositions, loValueAt } from "./lineout.js";   // v14.2
 import { lineReads } from "./linekinds.js";   // v14.4: which plots read a tool, output or table
 import { toolValues, DESKTOP_SCHEMA, desktopFields } from "./model.js";   // v14.4: + the desktop schema
@@ -847,19 +846,8 @@ function newTablePlot(table, x, ys, by) {
   addPanel(newPanel("1d", ns, { name: table }));
   toast(`a plot of table ${table} (hover a point: its row; ⚙ → x: another column; + line: another column)`);
 }
-/** v14.1: a new plot made from period tool t on `panel` (what: cycleplots.js CYC_WHAT), right after it; it follows the tool. */
-function newCycPlot(panel, t, what) {
-  const v = toolValues(panel.id, t.id), dim = isPerCurve(what) ? curveDim(v) : null;
-  if (isPerCurve(what) && !dim) { toast("the period tool's curves do not differ by a pick (r_max …): cast them to a table instead (→ table)", true); return; }
-  const xaxis = what === "ac" ? "lag" : dim ?? v?.xaxis ?? eff(panel).xaxis;
-  const ns = settings1D(xaxis, null);
-  ns.lines = [newCycLine(t.id, what, panel.id)];
-  if (what !== "sp" && what !== "sr") ns.tools = [];
-  ns.labels = { ...(ns.labels || {}), ylabel: CYC_WHAT[what] };
-  // (human 2026-11-13: "make the new plot linked in the same panel"): docked under its source plot, in its figure
-  spawnPlot(panel, newPanel("1d", ns, { name: `${CYC_WHAT[what]} · ${panel.name || "plot"}` }));   // v14.2.1: beside its source (v14.5: spawnPlot)
-  toast(`${CYC_WHAT[what]}: a new plot beside its source that follows the period tool (its window, detrend)`);
-}
+// (D22: the plots made from a period tool are the analysis plugin's, plugins/analysis/period.js; it makes them with
+// api.core.spawnPlot)
 /** v14.2: the 1D plot of map `panel`'s lineout tool t (its quantity along the tool's axis, one curve per position). */
 function newLineoutPlot(panel, t) {
   const g = loGeom(panel.id, t.id);
@@ -2000,10 +1988,9 @@ function migrateDerivedKinds() {
   if (loMoved.size) for (const st of [...S.panels.map(p => p.settings), ...Object.values(S.groups || {}).map(g => g.settings)])
     for (const l of st?.lines || []) if (l.lo && loMoved.has(l.lo.tool)) l.lo.tool = loMoved.get(l.lo.tool);
   if (loMoved.size) setTimeout(() => toast(`lineouts along the same axis of a map are one tool now (${loMoved.size} merged); their extra plots show the same curves — remove them if you like`), 900);
-  // v8.32.1: steps tools made before tools had names get one (steps1 …), so their output shows in the Outputs tab
+  // (v8.32.1's names for unnamed steps tools: the analysis plugin's migration since D22)
   for (const st of [...S.panels.map(p => p.settings), ...Object.values(S.groups || {}).map(g => g.settings)])
     for (const t of [...(st?.tools || []), ...(st?.ownTools || [])]) {
-      if (t?.type === "steps" && !t.name) t.name = freeToolName("steps");
       // v12.0: "mean of each curve" is a draw: a horizontal line at each curve's mean (same range, colours, label)
       // v14.5.1 (architecture review Phase 3): "line at the slider's time" (`now`) becomes a vertical line in time mode (one
       // thing, one stored form); its look stays
@@ -2577,7 +2564,6 @@ async function main() {
   };
   // v9.0: more outputs of a tool's foot gaps are known: redraw the plots that show them
   setTablesApi({ toast, changed: tablesChanged, newTablePlot });          // v14.0
-  setCycApi({ newPlot: newCycPlot });                                     // v14.1
   setLineoutApi({ newPlot: newLineoutPlot, retarget: retargetLineout });  // v14.2
   const head = document.querySelector("header"), setHeadH = () => document.documentElement.style.setProperty("--headh", head.offsetHeight + "px");
   setHeadH(); new ResizeObserver(setHeadH).observe(head);

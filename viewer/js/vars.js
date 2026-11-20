@@ -11,7 +11,7 @@ import { tablesTab } from "./tables.js";   // v14.0
 import { fitParams } from "./fit.js";
 import { isTagEntry, tagRuns, allTags, outputValues, nameTaken } from "./model.js";
 import { S, store, eff, fitAxis, dimCoord, axisInfo, isFn, isAn, anDef, srcOf, isRef, varOf, runOf, runLabel, numOf, listOf, newVarName, validVarName, renameVar, deleteVar, usesOf, bindRun, runNames, parseNumberValue, numberText,
-  configValues, isRunList, runsText, runsOf, listEntries, listRefs, OUTPUT_FIELDS, liveOutput, readingOwn, readingRuns, fitRuns, READING_OPS } from "./model.js";
+  configValues, isRunList, runsText, runsOf, listEntries, listRefs, readingOwn, readingRuns, fitRuns, READING_OPS } from "./model.js";
 import { el, select, askName, askConfirm, askForm, colorButton, closePopover } from "./ui.js";
 import { canCompute, ghostRuns, ghostPick, labelOf, MARK } from "./cacheable.js";
 
@@ -598,8 +598,9 @@ const SB_TABS = [["vars", "Variables", "set variables (datasets, numbers) and me
 const SB_PANES = { fns: "anxpane", expr: "exprpane" };
 // ---- the Outputs tab (v8.32, human 2026-11-09: "can we make it so a tool can define its own "output" as like variables
 // and stuff, lets say those get their own tab … so that it doesn't clutter things"; "or maybe even a nice table thing") ----
-/** What tells an output's curves apart: the label parts that differ between them (else the picks, "r_max = 3.01"). */
-function curveNames(curves) {
+/** What tells an output's curves apart: the label parts that differ between them (else the picks, "r_max = 3.01").
+ *  (D22: exported for the analysis plugin's steps card) */
+export function curveNames(curves) {
   const parts = curves.map(c => String(c.label || "").split(" · "));
   const n = Math.max(0, ...parts.map(p => p.length));
   const differ = [...Array(n).keys()].filter(i => new Set(parts.map(p => p[i])).size > 1);
@@ -644,9 +645,7 @@ function toolsTab() {
   onPlots.addEventListener("toggle", () => { try { localStorage.setItem("aptvis.toolsOnPlots", onPlots.open ? "1" : "0"); } catch { /* skip */ } });
   return [el("div", { class: "sbsec", title: "drag one onto a plot, or click it and then click a plot" }, "add to a plot"), ...pal, onPlots];
 }
-/** v12.2 (human 2026-11-12: "lets just get rid of pinned values and steps tool can keep its own things"): what steps tool
- *  `n` found at the time shown, in its card: per curve its σ and steps, copy as CSV, → foot gaps vs t. (Was part of the
- *  Outputs tab, then the Tools tab's "pinned values", both gone.) */
+// (v12.2: what a steps tool found is shown in its card; D22: that card is the analysis plugin's, plugins/analysis/steps.js)
 const OUTPUT_ACTIONS = [];
 /** v15.0 (plugins.js): a button a plugin adds to a named tool's output card: {kind (e.g. "steps"), label, title, run(name)}. */
 export function registerOutputAction(a) {
@@ -654,27 +653,9 @@ export function registerOutputAction(a) {
   if (typeof a.run !== "function") throw new Error("run is not a function");
   OUTPUT_ACTIONS.push(a);
 }
-export function stepsOutputView(n) {
-  const o = n ? liveOutput(n) : null;
-  if (!o || o.kind !== "steps") return [el("div", { class: "dim" }, "its steps: shown after the plot is drawn")];
-  const f = x => (Number.isFinite(x) ? R.fmt(x) : "—"), names = curveNames(o.curves);
-  const total = o.curves.reduce((s, c) => s + c.steps.length, 0);
-  const csv = ["output,curve,step,from_10,to_90,start,end,excess,sigma",
-    ...o.curves.flatMap((c, i) => (c.steps.length ? c.steps : [null]).map((st, j) => [n, `"${names[i]}"`, st ? j + 1 : 0, ...(st ? [st.s10, st.s90, st.x0, st.x1, st.D] : ["", "", "", "", ""]), c.sigma].join(",")))].join("\n");
-  const rows = o.curves.flatMap((c, i) => [
-    el("tr", { class: "outcurve" }, el("td", { colspan: 4, title: c.label }, `${names[i]} · σ ${f(c.sigma)} · ${c.steps.length} step${c.steps.length === 1 ? "" : "s"}`)),
-    ...c.steps.map((st, j) => el("tr", {}, el("td", { class: "dim" }, String(j + 1)), el("td", { title: "10–90 % of its excess" }, `${f(st.s10)}–${f(st.s90)}`),
-      el("td", { class: "dim", title: "the whole step" }, `${f(st.x0)}–${f(st.x1)}`), el("td", { title: "excess ∫(curve − background) dx" }, f(st.D))))]);
-  return [
-    el("div", { class: "pop-row" }, el("span", { class: "dim" }, `found ${total} step${total === 1 ? "" : "s"} on ${o.curves.length} curve${o.curves.length === 1 ? "" : "s"}`),
-      el("button", { class: "tog", title: "copy every step as CSV (output, curve, step, from_10, to_90, start, end, excess, sigma)",
-        onclick: () => navigator.clipboard?.writeText(csv).then(() => API.toast(`${n}: ${total} steps copied as CSV`), () => API.toast("could not copy (the browser refused)", true)) }, "copy CSV"),
-      // v15.0: buttons plugins add to this card (aperture4: → foot gaps vs t)
-      ...OUTPUT_ACTIONS.filter(a => a.kind === o.kind).map(a => el("button", { class: "tog", title: a.title || "", onclick: () => { closePopover(); a.run(n); } }, a.label))),
-    el("div", { class: "toolvals" }, el("table", { class: "outtab" }, el("tr", { class: "dim" }, el("th", {}, "#"), el("th", {}, "10–90 %"), el("th", {}, "whole"), el("th", {}, "excess")), ...rows)),
-    el("div", { class: "dim", title: "type these into number fields (a vertical line at $" + n + ".from draws one line per step)" },
-      `$${n}.` + Object.keys(OUTPUT_FIELDS[o.kind] || {}).join(" · ."))];
-}
+/** D22: the buttons plugins added for an output kind; the card that shows such an output (the analysis plugin's steps
+ *  card, plugins/analysis/steps.js) puts them in its first row. */
+export const outputActions = kind => OUTPUT_ACTIONS.filter(a => a.kind === kind);
 export function renderSidebar() {
   const box = document.getElementById("sidebar"), park = document.getElementById("sbstore");
   if (!box) return;

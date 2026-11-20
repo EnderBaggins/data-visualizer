@@ -1,4 +1,4 @@
-# data-visualizer (v15.3.0, 2026-11-20)
+# data-visualizer (v15.4.0, 2026-11-20)
 
 An interactive browser plotter for simulation output, plus a data manager that turns raw simulation dumps into the
 small, fast files the plotter reads. Built for Aperture4 magnetar PIC runs; made general so others can bring their own

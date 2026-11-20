@@ -7,11 +7,13 @@
 //
 //   export default function (api) {
 //     api.registerLineKind({ key, label, is, expand, curve, name, editor, colour, deps, yId, caps });   // linekinds.js
-//     api.registerTool({ key, label, folder, where, help, is, make, summary, rows, style, colour });     // settings.js
+//     api.registerTool({ key, label, folder, where, help, is, make, summary, rows, style, colour,       // settings.js
+//                        problem, prepare1d, draw1d, legend1d, textRow });                              // (optional, D22: its work on 1D plots)
 //     api.registerLineMenu({ key, label, help, available, form });                                      // lines.js "+ line"
 //     api.registerSymbols({ name: "LaTeX" });                                                           // latex.js
 //     api.registerMigration(S => { ... });                                                              // old desktops
 //     api.registerOutputAction({ kind, label, title, run });                                            // vars.js: a button on a named tool's output card
+//     api.registerOutputKind({ kind, fields, values });                                                 // model.js: what a named tool publishes ("$name.field"; D22)
 //     api.registerContourLevels({ key, label, title, levels });                                         // model.js: a contour level mode
 //     api.registerAxisNames({ dim: "name" }, [order]);  api.registerDefaults({ scaleRef, configVars });   // model.js
 //     api.registerExampleDesktop(runs => plots);                                                        // model.js: the example desktop
@@ -27,12 +29,15 @@
 // v15.1 (DECISIONS D20): a plugin folder may hold a plugin.json, {"data": [{"dims": [...], "what": "..."}]}: data only it
 // can draw. For every plugin index.json lists that is not loaded (?plugins=, or it failed), the core reads it, so a plot
 // of such data says which plugin it needs instead of drawing it wrong (model.js missingKindOf).
+// D22: plugin.json may also list "tools": [{"type", "what"}] and "lines": [{"field", "what"}], the stored tools (by t.type)
+// and made lines (by the field they carry) of that plugin: with it off they are kept as saved, draw nothing, and say
+// "needs the <name> plugin, which is not loaded" (model.js missingToolOf / missingLineOf).
 import { registerLineKind } from "./linekinds.js";
 import { registerTool } from "./settings.js";
 import { registerLineMenu } from "./lines.js";
 import { registerSymbols } from "./latex.js";
 import { registerOutputAction } from "./vars.js";
-import { registerContourLevels, registerAxisNames, registerExampleDesktop, registerDefaults, registerDataKind, setMissingKinds } from "./model.js";
+import { registerContourLevels, registerAxisNames, registerExampleDesktop, registerDefaults, registerDataKind, registerOutputKind, setMissingKinds } from "./model.js";
 import { registerReadingOp } from "./measure.js";
 
 const MIGRATIONS = [];
@@ -66,6 +71,7 @@ function apiFor(who) {
     registerLineMenu: wrap("registerLineMenu", registerLineMenu),
     registerSymbols: wrap("registerSymbols", registerSymbols),
     registerOutputAction: wrap("registerOutputAction", registerOutputAction),
+    registerOutputKind: (k) => { try { registerOutputKind(k); } catch (e) { throw new Error(`${who}: registerOutputKind(${k?.kind ?? ""}): ${e.message}`); } },   // D22
     registerContourLevels: wrap("registerContourLevels", registerContourLevels),
     registerAxisNames: (names, order) => { try { registerAxisNames(names, order); } catch (e) { throw new Error(`${who}: registerAxisNames: ${e.message}`); } },
     registerExampleDesktop: wrap("registerExampleDesktop", registerExampleDesktop),
@@ -98,13 +104,17 @@ export async function loadPlugins(params = new URLSearchParams()) {
   }
   // v15.1: what the listed plugins that are not loaded alone can draw (their plugin.json), for the plots that need them
   const off = [...new Set([...(Array.isArray(listed) ? listed : []), ...FAILED.map(f => f.name)])].filter(n => /^[\w.-]+$/.test(n) && !LOADED.includes(n));
-  const missing = [];
+  const missing = [], tools = [], lines = [];
   for (const name of off) {
     try {
       const r = await fetch(new URL(`../plugins/${name}/plugin.json`, import.meta.url), { cache: "no-cache" });
-      if (r.ok) for (const d of (await r.json()).data || []) if (Array.isArray(d?.dims) && d.dims.length) missing.push({ plugin: name, dims: d.dims.map(String), what: String(d.what || `data of the ${name} plugin`) });
+      if (!r.ok) continue;
+      const j = await r.json();
+      for (const d of j.data || []) if (Array.isArray(d?.dims) && d.dims.length) missing.push({ plugin: name, dims: d.dims.map(String), what: String(d.what || `data of the ${name} plugin`) });
+      for (const d of j.tools || []) if (d?.type) tools.push({ plugin: name, type: String(d.type), what: String(d.what || d.type) });   // D22
+      for (const d of j.lines || []) if (d?.field) lines.push({ plugin: name, field: String(d.field), what: String(d.what || `a line of the ${name} plugin`) });
     } catch { /* no plugin.json: nothing to name */ }
   }
-  setMissingKinds(missing);
+  setMissingKinds(missing, { tools, lines });
   return LOADED;
 }

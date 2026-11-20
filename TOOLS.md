@@ -11,12 +11,12 @@ from the **?** list. How to use them by goal: `HOWTOUSE.md`.
 | **band** | draw | any plot | a shaded band between two values, across x or across y | core |
 | **point** | draw | any plot | a point at x, y; on a 1D plot also at each curve's max or min (→ variable) | core |
 | **contours** | draw | maps whose axes are the quantity's space axes | contour lines of a 2D quantity at the levels you give (numbers, a list or variables) | core |
-| **fit** | curves | 1D plots | a polynomial, power law or exponential fit of each curve over a range; its numbers (τ, k, p, A, R²) → variables | core |
-| **averaged curve** | curves | 1D plots | each curve averaged along another axis (e.g. over r_max), drawn beside it | core |
 | **lineout** | curves | maps | a linked 1D plot of this map's quantity along one of its axes, one curve per position (a cut across the other axis): click the map to move the last lineout, shift-click on the map to add one; → variable makes the positions a variable | core |
-| **period** | curves | 1D plots | the period of a cycle in each curve inside a window you choose (detrended autocorrelation, its first peak; regularity < 0.2 = no clear cycle), the lags between curves; → table, → variable, new plots (autocorrelation, period over time, per curve) | core |
-| **steps** | more | 1D plots | steps above a running-median background (the slope-of-the-drop gaps); named; its card lists its steps | core |
-| **steps from another plot** | more | 1D plots | a named steps tool's steps shaded on this plot's curves (same dataset and r_max) | core |
+| **fit** | curves | 1D plots | a polynomial, power law or exponential fit of each curve over a range; its numbers (τ, k, p, A, R²) → variables | plugin analysis |
+| **averaged curve** | curves | 1D plots | each curve averaged along another axis (e.g. over r_max), drawn beside it | plugin analysis |
+| **period** | curves | 1D plots | the period of a cycle in each curve inside a window you choose (detrended autocorrelation, its first peak; regularity < 0.2 = no clear cycle), the lags between curves; → table, → variable, new plots (autocorrelation, period over time, per curve) | plugin analysis |
+| **steps** | more | 1D plots | steps above a running-median background (the slope-of-the-drop gaps); named; its card lists its steps | plugin analysis |
+| **steps from another plot** | more | 1D plots | a named steps tool's steps shaded on this plot's curves (same dataset and r_max) | plugin analysis |
 | **field lines** | draw | maps whose axes are the quantity's space axes | field lines through r_max footpoints (contours of Ψ) | plugin aperture4 |
 
 ## Line kinds from plugins (in a 1D plot's **+ line**)
