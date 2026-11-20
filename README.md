@@ -6,7 +6,7 @@ data (fork it and adjust).
 
 **Guides:** [HOWTOUSE.md](HOWTOUSE.md) (by goal: see, measure, arrange) · [BRING_YOUR_DATA.md](BRING_YOUR_DATA.md) (a reader +
 methods for your simulation, or write the store yourself) · [AGENTS.md](AGENTS.md) (for your AI assistant: what to
-suggest, where code goes). A demo dataset comes next.
+suggest, where code goes).
 
 ## What is here
 
@@ -21,12 +21,16 @@ suggest, where code goes). A demo dataset comes next.
 | `RULES.md`, `DECISIONS.md`, `CHANGELOG.md` | how the code is kept consistent, why things are as they are, release notes |
 | `tools/check.mjs` | the consistency check: `node tools/check.mjs` must pass after every change |
 
-## Quick start (until the guide lands)
+## Quick start: the demo
 
 ```bash
+python projects/demo/setup_demo.py
 python serve.py 8765 --project projects/demo
 ```
 
-then open http://localhost:8765/viewer/ . The data manager's page is http://localhost:8765/viewer/datamgr.html .
+then open http://localhost:8765/viewer/ : a synthetic rotating vortex (dataset `vortex`, 40 outputs) as a map of |v| and
+its max over time. The first command makes the run (`demo_runs/`), registers it with the data manager and computes its
+quantities into `data/` (needs Python with numpy). The data manager's page: http://localhost:8765/viewer/datamgr.html .
+Next: your own data, [BRING_YOUR_DATA.md](BRING_YOUR_DATA.md).
 
 Licence: MIT (see `LICENSE`).

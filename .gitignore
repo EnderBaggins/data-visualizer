@@ -8,3 +8,4 @@ versions/
 .check-ok.json
 __pycache__/
 *.pyc
+demo_runs/
