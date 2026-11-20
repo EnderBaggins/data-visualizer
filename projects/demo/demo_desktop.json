@@ -1,0 +1,625 @@
+{
+ "version": 8,
+ "panels": [
+  {
+   "link": null,
+   "title": null,
+   "id": 6,
+   "type": "2d",
+   "name": "|v| with contours of rho",
+   "width": 722,
+   "settings": {
+    "run": "$A",
+    "q": "speed",
+    "xdim": "x",
+    "ydim": "y",
+    "meridional": true,
+    "mirror": false,
+    "picks": {},
+    "timeMode": "follow",
+    "fixedTime": null,
+    "cmap": "viridis",
+    "reverse": false,
+    "norm": "lin",
+    "linthresh": null,
+    "hide": null,
+    "limits": "frame",
+    "vmin": null,
+    "vmax": null,
+    "symmetric": false,
+    "decades": 4,
+    "abs": false,
+    "logx": false,
+    "logy": false,
+    "lockAspect": true,
+    "aspect": 0.8,
+    "view": null,
+    "tools": [
+     {
+      "id": 5,
+      "type": "contour",
+      "visible": true,
+      "q": "rho",
+      "levelMode": "values",
+      "levels": "1.2,1.5,1.8",
+      "color": "#ffffff",
+      "width": 1.2
+     }
+    ],
+    "labels": {
+     "xlabel": null,
+     "ylabel": null,
+     "cbar": null
+    },
+    "cbarPos": "auto"
+   },
+   "span": 2,
+   "col": null,
+   "cols": 2
+  },
+  {
+   "link": {
+    "group": "g26",
+    "own": [
+     "run",
+     "q",
+     "lines",
+     "slope",
+     "xdim",
+     "ydim",
+     "meridional",
+     "mirror",
+     "logx",
+     "logy",
+     "picks",
+     "timeMode",
+     "fixedTime",
+     "xaxis",
+     "ykind",
+     "abs",
+     "xfn",
+     "yfn",
+     "at",
+     "cmap",
+     "reverse",
+     "norm",
+     "linthresh",
+     "decades",
+     "cbarPos",
+     "hide",
+     "limits",
+     "vmin",
+     "vmax",
+     "vsym",
+     "symmetric",
+     "tools",
+     "labels",
+     "legend",
+     "legendPos",
+     "fonts",
+     "infoPos",
+     "aspect",
+     "lockAspect",
+     "scale",
+     "avg",
+     "smooth"
+    ]
+   },
+   "title": null,
+   "id": 7,
+   "type": "2d",
+   "name": "rho, with a lineout (click the map to move it, shift-click to add one)",
+   "width": 707,
+   "settings": {
+    "run": "$A",
+    "q": "rho",
+    "xdim": "x",
+    "ydim": "y",
+    "meridional": true,
+    "mirror": false,
+    "picks": {},
+    "timeMode": "follow",
+    "fixedTime": null,
+    "cmap": "viridis",
+    "reverse": false,
+    "norm": "lin",
+    "linthresh": null,
+    "hide": null,
+    "limits": "frame",
+    "vmin": null,
+    "vmax": null,
+    "symmetric": false,
+    "decades": 4,
+    "abs": false,
+    "logx": false,
+    "logy": false,
+    "lockAspect": true,
+    "aspect": 0.8,
+    "view": null,
+    "tools": [
+     {
+      "id": 23,
+      "type": "lineout",
+      "visible": true,
+      "along": "x",
+      "at": [
+       0.004184
+      ],
+      "plot": 25,
+      "color": "#d6007a",
+      "dash": "dashed",
+      "width": 1.4,
+      "label": null
+     }
+    ],
+    "labels": {
+     "xlabel": null,
+     "ylabel": null,
+     "cbar": null
+    },
+    "cbarPos": "auto"
+   },
+   "span": 2,
+   "col": null,
+   "cols": 2
+  },
+  {
+   "id": 25,
+   "type": "1d",
+   "name": "lineout of rho (its positions: click the map)",
+   "title": null,
+   "width": 707,
+   "pos": null,
+   "settings": {
+    "xaxis": "x",
+    "ykind": null,
+    "run": null,
+    "lines": [
+     {
+      "id": 24,
+      "lo": {
+       "map": 7,
+       "tool": 23
+      },
+      "run": null,
+      "label": null,
+      "color": null,
+      "dash": "solid",
+      "width": 1.6,
+      "visible": true,
+      "listColors": false
+     }
+    ],
+    "logx": false,
+    "logy": false,
+    "abs": false,
+    "ylim": "auto",
+    "ymin": null,
+    "ymax": null,
+    "view": null,
+    "yview": null,
+    "aspect": 0.6,
+    "lockAspect": false,
+    "tools": [],
+    "labels": {
+     "xlabel": null,
+     "ylabel": null,
+     "cbar": null
+    }
+   },
+   "link": {
+    "group": "g26",
+    "own": [
+     "run",
+     "q",
+     "lines",
+     "slope",
+     "xdim",
+     "ydim",
+     "meridional",
+     "mirror",
+     "logx",
+     "logy",
+     "picks",
+     "timeMode",
+     "fixedTime",
+     "xaxis",
+     "ykind",
+     "abs",
+     "xfn",
+     "yfn",
+     "at",
+     "cmap",
+     "reverse",
+     "norm",
+     "linthresh",
+     "decades",
+     "cbarPos",
+     "hide",
+     "limits",
+     "vmin",
+     "vmax",
+     "vsym",
+     "symmetric",
+     "tools",
+     "labels",
+     "legend",
+     "legendPos",
+     "fonts",
+     "infoPos",
+     "aspect",
+     "lockAspect",
+     "scale",
+     "avg",
+     "smooth"
+    ]
+   }
+  },
+  {
+   "link": null,
+   "title": null,
+   "id": 12,
+   "type": "1d",
+   "name": "max |v|: exponential fit, mean line",
+   "width": 722,
+   "settings": {
+    "xaxis": "time",
+    "ykind": "speed",
+    "run": "$A",
+    "lines": [
+     {
+      "id": 9,
+      "run": "$A",
+      "q": "speed_max",
+      "picks": {},
+      "pickAs": {},
+      "timeMode": "follow",
+      "fixedTime": null,
+      "label": null,
+      "color": null,
+      "dash": "solid",
+      "width": 1.6,
+      "visible": true
+     }
+    ],
+    "logx": false,
+    "logy": false,
+    "abs": false,
+    "ylim": "auto",
+    "ymin": null,
+    "ymax": null,
+    "view": null,
+    "yview": null,
+    "aspect": 0.6,
+    "lockAspect": false,
+    "tools": [
+     {
+      "id": 8,
+      "type": "line",
+      "visible": true,
+      "orient": "v",
+      "mode": "time",
+      "value": 0,
+      "offset": 0,
+      "color": "#000000",
+      "dash": "dashed",
+      "width": 1
+     },
+     {
+      "id": 10,
+      "type": "fit",
+      "visible": true,
+      "line": null,
+      "model": "exp",
+      "degree": 2,
+      "over": "range",
+      "from": null,
+      "to": null,
+      "curveColors": true,
+      "color": "#555555",
+      "dash": "dashed",
+      "width": 1.4,
+      "show": true
+     },
+     {
+      "id": 11,
+      "type": "line",
+      "visible": true,
+      "orient": "h",
+      "mode": "data",
+      "value": 0,
+      "offset": 0,
+      "color": "#555555",
+      "dash": "dotted",
+      "width": 1.2,
+      "stat": "mean"
+     }
+    ],
+    "labels": {
+     "xlabel": null,
+     "ylabel": null,
+     "cbar": null
+    }
+   },
+   "span": 2,
+   "col": null,
+   "cols": 2
+  },
+  {
+   "link": null,
+   "title": null,
+   "id": 17,
+   "type": "1d",
+   "name": "rho at (0.4, 0): period, point at the max",
+   "width": 722,
+   "settings": {
+    "xaxis": "time",
+    "ykind": "rho",
+    "run": "$A",
+    "lines": [
+     {
+      "id": 14,
+      "run": "$A",
+      "q": "rho",
+      "picks": {
+       "x": 0.4,
+       "y": 0
+      },
+      "pickAs": {},
+      "timeMode": "follow",
+      "fixedTime": null,
+      "label": null,
+      "color": null,
+      "dash": "solid",
+      "width": 1.6,
+      "visible": true
+     }
+    ],
+    "logx": false,
+    "logy": false,
+    "abs": false,
+    "ylim": "auto",
+    "ymin": null,
+    "ymax": null,
+    "view": null,
+    "yview": null,
+    "aspect": 0.6,
+    "lockAspect": false,
+    "tools": [
+     {
+      "id": 13,
+      "type": "line",
+      "visible": true,
+      "orient": "v",
+      "mode": "time",
+      "value": 0,
+      "offset": 0,
+      "color": "#000000",
+      "dash": "dashed",
+      "width": 1
+     },
+     {
+      "id": 15,
+      "type": "period",
+      "visible": true,
+      "line": null,
+      "from": null,
+      "to": null,
+      "detrend": "linear",
+      "width": 32,
+      "step": 2,
+      "color": "#7a3fb0",
+      "show": true
+     },
+     {
+      "id": 16,
+      "type": "point",
+      "visible": true,
+      "mode": "data",
+      "x": 0,
+      "y": 0,
+      "stat": "max",
+      "line": null,
+      "from": null,
+      "to": null,
+      "curveColors": true,
+      "size": 5,
+      "color": "#d6007a",
+      "label": null
+     }
+    ],
+    "labels": {
+     "xlabel": null,
+     "ylabel": null,
+     "cbar": null
+    }
+   },
+   "span": 2,
+   "col": null,
+   "cols": 2
+  },
+  {
+   "link": null,
+   "title": null,
+   "id": 22,
+   "type": "1d",
+   "name": "rho along x at y = -0.4, 0, 0.4: averaged curve, steps, band",
+   "width": 722,
+   "settings": {
+    "xaxis": "x",
+    "ykind": "rho",
+    "run": "$A",
+    "lines": [
+     {
+      "id": 18,
+      "run": "$A",
+      "q": "rho",
+      "picks": {
+       "y": "$ys"
+      },
+      "pickAs": {},
+      "timeMode": "follow",
+      "fixedTime": null,
+      "label": null,
+      "color": null,
+      "dash": "solid",
+      "width": 1.6,
+      "visible": true
+     }
+    ],
+    "logx": false,
+    "logy": false,
+    "abs": false,
+    "ylim": "auto",
+    "ymin": null,
+    "ymax": null,
+    "view": null,
+    "yview": null,
+    "aspect": 0.6,
+    "lockAspect": false,
+    "tools": [
+     {
+      "id": 19,
+      "type": "mean",
+      "visible": true,
+      "line": null,
+      "along": "y",
+      "over": "range",
+      "from": null,
+      "to": null,
+      "curveColors": true,
+      "color": "#555555",
+      "dash": "dashed",
+      "width": 1.2,
+      "label": null
+     },
+     {
+      "id": 20,
+      "type": "steps",
+      "visible": true,
+      "line": null,
+      "w": 3,
+      "k": 3,
+      "showBg": true,
+      "showThr": true,
+      "shade": true,
+      "show": true,
+      "width": 1.1,
+      "name": "bumps"
+     },
+     {
+      "id": 21,
+      "type": "band",
+      "visible": true,
+      "orient": "v",
+      "lo": -0.2,
+      "hi": 0.2,
+      "alpha": 0.15,
+      "color": "#888888",
+      "label": null
+     }
+    ],
+    "labels": {
+     "xlabel": null,
+     "ylabel": null,
+     "cbar": null
+    }
+   },
+   "span": 2,
+   "col": null,
+   "cols": 2
+  }
+ ],
+ "groups": {
+  "g26": {
+   "id": "g26",
+   "type": "2d",
+   "color": "#2f6fd0",
+   "settings": {
+    "run": "$A",
+    "q": "rho",
+    "xdim": "x",
+    "ydim": "y",
+    "meridional": true,
+    "mirror": false,
+    "picks": {},
+    "timeMode": "follow",
+    "fixedTime": null,
+    "cmap": "viridis",
+    "reverse": false,
+    "norm": "lin",
+    "linthresh": null,
+    "hide": null,
+    "limits": "frame",
+    "vmin": null,
+    "vmax": null,
+    "symmetric": false,
+    "decades": 4,
+    "abs": false,
+    "logx": false,
+    "logy": false,
+    "lockAspect": true,
+    "aspect": 0.8,
+    "view": null,
+    "tools": [
+     {
+      "id": 23,
+      "type": "lineout",
+      "visible": true,
+      "along": "x",
+      "at": [
+       0.004184
+      ],
+      "plot": 25,
+      "color": "#d6007a",
+      "dash": "dashed",
+      "width": 1.4,
+      "label": null
+     }
+    ],
+    "labels": {
+     "xlabel": null,
+     "ylabel": null,
+     "cbar": null
+    },
+    "cbarPos": "auto"
+   },
+   "figure": true,
+   "cellWidth": 391,
+   "col": 0,
+   "cols": 2,
+   "span": 2,
+   "rows": [
+    [
+     7,
+     25
+    ]
+   ]
+  }
+ },
+ "vars": {
+  "A": {
+   "name": "A",
+   "type": "dataset",
+   "value": "vortex"
+  },
+  "ys": {
+   "name": "ys",
+   "type": "number",
+   "value": [
+    -0.4,
+    0,
+    0.4
+   ]
+  }
+ },
+ "tables": {},
+ "style": {},
+ "trange": {},
+ "expressions": "",
+ "exprNotes": {},
+ "t": 1.5,
+ "fps": 8,
+ "loop": true,
+ "nextId": 27
+}

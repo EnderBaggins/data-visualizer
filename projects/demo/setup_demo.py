@@ -2,7 +2,7 @@
 
     python projects/demo/setup_demo.py            (from the repo root; then: python serve.py 8765 --project projects/demo)
 
-1. make_demo_run.py writes demo_runs/vortex/ (40 outputs of a rotating, decaying vortex: vx, vy, rho on a y × x grid);
+1. make_demo_run.py writes demo_runs/vortex/ (100 outputs of a rotating, slowly decaying vortex: vx, vy, rho on a y × x grid);
 2. the data manager (this demo project's reader) registers it as the dataset "vortex";
 3. it computes the demo's methods (|v| as a map, max |v| per output) and copies the raw field rho, into data/.
 """
@@ -13,11 +13,18 @@ ROOT = os.path.dirname(os.path.dirname(HERE))                  # the repo (datam
 RUN = os.path.join(ROOT, "demo_runs", "vortex")
 env = dict(os.environ, DATAMGR_PROJECT=HERE, PYTHONIOENCODING="utf-8")
 
-def dm(*args):
+def dm(*args, check=True):
     print("$ python -m datamgr", " ".join(args))
-    subprocess.run([sys.executable, "-m", "datamgr", *args], cwd=ROOT, env=env, check=True)
+    subprocess.run([sys.executable, "-m", "datamgr", *args], cwd=ROOT, env=env, check=check)
 
-subprocess.run([sys.executable, os.path.join(HERE, "make_demo_run.py"), RUN, "40"], check=True)
-dm("add-dataset", "vortex", RUN)
-dm("cache", "speed", "speed_max", "rho", "--runs", "vortex")
+subprocess.run([sys.executable, os.path.join(HERE, "make_demo_run.py"), RUN, "100"], check=True)
+dm("add-dataset", "vortex", RUN, check=False)                  # (already registered on a second run: fine)
+dm("cache", "speed", "speed_max", "rho", "--runs", "vortex", "--rewrite")
+# 4. the demo desktop (the tools on this data): views/desktops/demo.json, opened from the header's "desktops…"
+desk = os.path.join(HERE, "demo_desktop.json")
+if os.path.exists(desk):
+    import shutil
+    os.makedirs(os.path.join(ROOT, "views", "desktops"), exist_ok=True)
+    shutil.copy(desk, os.path.join(ROOT, "views", "desktops", "demo.json"))
+    print("demo desktop -> views/desktops/demo.json (header: desktops… -> demo)")
 print("\nDone. Start the viewer:  python serve.py 8765 --project projects/demo   then open http://localhost:8765/viewer/")

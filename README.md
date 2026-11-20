@@ -28,8 +28,9 @@ python projects/demo/setup_demo.py
 python serve.py 8765 --project projects/demo
 ```
 
-then open http://localhost:8765/viewer/ : a synthetic rotating vortex (dataset `vortex`, 40 outputs) as a map of |v| and
-its max over time. The first command makes the run (`demo_runs/`), registers it with the data manager and computes its
+then open http://localhost:8765/viewer/ and choose **desktops… → demo**: a synthetic rotating, decaying vortex (dataset
+`vortex`, 100 outputs) shown with the tools: contours, a lineout, an exponential fit (it finds the decay time, 6), the
+period tool (the rotation, about π), points and lines at a curve's max / mean, an averaged curve, steps and a band. The first command makes the run (`demo_runs/`), registers it with the data manager and computes its
 quantities into `data/` (needs Python with numpy). The data manager's page: http://localhost:8765/viewer/datamgr.html .
 Next: your own data, [BRING_YOUR_DATA.md](BRING_YOUR_DATA.md).
 
