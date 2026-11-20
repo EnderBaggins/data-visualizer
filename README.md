@@ -4,7 +4,9 @@ An interactive browser plotter for simulation output, plus a data manager that t
 small, fast files the plotter reads. Built for Aperture4 magnetar PIC runs; made general so others can bring their own
 data (fork it and adjust).
 
-**Status:** first upload. A full guide (how to use it, how to bring your own data, a demo dataset) comes next.
+**Guides:** [HOWTOUSE.md](HOWTOUSE.md) (by goal: see, measure, arrange) · [BRING_YOUR_DATA.md](BRING_YOUR_DATA.md) (a reader +
+methods for your simulation, or write the store yourself) · [AGENTS.md](AGENTS.md) (for your AI assistant: what to
+suggest, where code goes). A demo dataset comes next.
 
 ## What is here
 

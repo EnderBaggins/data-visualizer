@@ -26,7 +26,7 @@ viewer_from = None
 if "--viewer-from" in args:
     i = args.index("--viewer-from"); viewer_from = args[i + 1]; del args[i:i + 2]
 REPO = os.path.abspath(args[0] if args else os.path.join(os.path.dirname(WIKI), "data-visualizer"))
-OWNED = {"README.md", "LICENSE", ".gitignore", ".git", ".check-ok.json"}
+OWNED = {"README.md", "LICENSE", ".gitignore", ".git", ".check-ok.json", "CLAUDE.md"}
 SKIP = re.compile(r"(__pycache__|\.pyc$|^app\.js$|\.bak\d*$|\.orig$)")   # (viewer/app.js: a stray pre-v6 file on the server)
 
 PLAN = [  # (source, destination in the repo)
@@ -35,7 +35,7 @@ PLAN = [  # (source, destination in the repo)
     (os.path.join(VIS, "tests"), "tests"),
     (os.path.join(CW, "datamgr"), "datamgr"),
     (os.path.join(CW, "projects"), "projects"),
-] + [(os.path.join(VIS, f), f) for f in ("RULES.md", "FORMAT.md", "DECISIONS.md", "CHANGELOG.md", "serve.py")]
+] + [(os.path.join(VIS, f), f) for f in ("RULES.md", "FORMAT.md", "DECISIONS.md", "CHANGELOG.md", "serve.py", "HOWTOUSE.md", "BRING_YOUR_DATA.md", "AGENTS.md")]
 
 def copy_tree(src, dst, wanted):
     for root, dirs, files in os.walk(src):
