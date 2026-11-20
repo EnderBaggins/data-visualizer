@@ -2,18 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Aperture4 visualizer v15.2.0</title>
+<title>data-visualizer v15.3.0</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <b>Aperture4 visualizer</b> <span class="dim">v15.2.0</span>
+  <b>data-visualizer</b> <span class="dim">v15.3.0</span>
   <span class="desk">desktop: <b id="dname"></b></span>
   <button id="savedesk" title="save this desktop">💾 save</button>
   <button id="desktops" title="open / save as / delete saved desktops">desktops…</button>
   <button id="panelsets" title="templates: plots saved on purpose, by type (insert, search, preview)">templates…</button>
   <button id="undo" title="undo (Ctrl+Z)">↶</button>
   <button id="redo" title="redo (Ctrl+Shift+Z / Ctrl+Y)">↷</button>
+  <button id="help" title="every tool, what it does and where it goes (place one from here); the guides">?</button>
   <span id="theme" class="themesw" title="light / dark page / dark plots (saved PNGs and movies are always light)"></span>
   <span class="sep"></span>
   <button id="add2d">+ map</button>
@@ -75,7 +76,7 @@
 </footer>
 <div id="toast"></div>
 <div id="fatal" style="display:none"></div>
-<div id="offline" style="display:none">serve.py or the port forward is not reachable — playback paused; retrying every 5 s. (Is serve.py running? Is VS Code connected to alexstorage?)</div>
+<div id="offline" style="display:none">serve.py or the port forward is not reachable — playback paused; retrying every 5 s. (Is serve.py running? If it runs on another machine, is the port forward open?)</div>
 <script>
 // Runs before the viewer: (1) if this browser blocks storage (some embedded browsers do), use an in-memory
 // stand-in so the viewer still starts; (2) any startup error is shown here instead of a blank page, with a

@@ -568,6 +568,15 @@ function placeTool(panel, k, ev) {
   const ctx = settingsCtx(panel), t = addTool(ctx, k);
   setTimeout(() => openToolEditor(settingsCtx(panel), t.id, ev), 60);     // its card, once the plot has the tool
 }
+/** v15.3 (public-release docs; human: people "may not know to ask for how tools work"): every tool — the core's and
+ *  the plugins' — with its help, folder and where it goes; "place" arms it like a click in the Tools tab. The same list
+ *  is written to TOOLS.md (tools/tools_md.mjs) for the repo. */
+function helpDialog() {
+  const items = TOOLS.map(([k, label, help, where, folder]) => ({ name: `${folder} · ${label}`, info: `${help} — on ${toolWhere(where)}`,
+    actions: [["place", () => setTimeout(() => armTool(k), 0)]] }));
+  dialog("Tools (Tools tab in the sidebar; hover anything for help)", items,
+    [["how to use (HOWTOUSE.md)", () => window.open("../HOWTOUSE.md", "_blank")], ["bring your own data", () => window.open("../BRING_YOUR_DATA.md", "_blank")]]);
+}
 function toolDrag(k) { TOOL_DRAG = k; markToolTargets(k); }
 function armTool(k) {
   TOOL_ARMED = k; markToolTargets(k);
@@ -2614,6 +2623,7 @@ async function main() {
   $("desktops").onclick = desktopsDialog;
   $("panelsets").onclick = templatesDialog;
   $("style").onclick = e => styleDialog(e);
+  $("help").onclick = () => helpDialog();                // v15.3: the "?" list of every tool
   $("undo").onclick = undo; $("redo").onclick = redo;
   $("expr-apply").onclick = () => { S.expressions = $("expr").value; applyExpressions(); };
   $("expr-new").onclick = e => defBox("expr", null, e);

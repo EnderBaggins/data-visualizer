@@ -196,6 +196,8 @@ class RunStore:
         md = self.reader.metadata()
         self.m["conf"] = dict(md.get("conf") or {})     # a few settings, for the dataset cards
         self.m["conf_all"] = dict(md.get("conf_all") or {})   # §4.9: every config number, for config variables
+        if getattr(self.reader, "time_units", ""):            # v15.3: the viewer labels its time axis with these
+            self.m["time_units"] = self.reader.time_units
         axes = keep_coords()
         if axes and not all(a in self.m["coords"] for a in axes):      # the grid: written once, from the reader
             g = self.reader.grid()

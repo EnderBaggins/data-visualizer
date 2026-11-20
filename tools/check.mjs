@@ -132,6 +132,15 @@ for (const f of ["cycles.js", "fit.js", "stats.js", "results.js"]) {
   probs.length ? probs.forEach(p => fail("plugins", p)) : ok(`plugins: ${listed.length} listed (${listed.join(", ") || "none"}), ${plugFiles.length} plugin files checked like the core`);
 }
 
+// ---- 3c. TOOLS.md is up to date (v15.3) ----------------------------------------------------------------------------------
+{
+  const { toolsMarkdown } = await import(pathToFileURL(path.join(VIS, "tools", "tools_md.mjs")).href);
+  const p = path.join(VIS, "TOOLS.md"), want = toolsMarkdown();
+  !fs.existsSync(p) ? fail("TOOLS.md", "missing — run: node tools/tools_md.mjs")
+    : read(p).replace(/\r\n/g, "\n") !== want ? fail("TOOLS.md", "out of date with the tool definitions — run: node tools/tools_md.mjs")
+    : ok("TOOLS.md matches the tool definitions");
+}
+
 // ---- 4. tests (P12) ---------------------------------------------------------------------------------------------------
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
@@ -319,6 +328,6 @@ if (fails.length && !(args.includes("--update-baseline") && raised.length === 0 
 const stamp = {};
 const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else stamp[path.relative(VIS, p).split(path.sep).join("/")] = crypto.createHash("md5").update(fs.readFileSync(p)).digest("hex"); } };
 for (const d of ["viewer", "tools", "tests"]) if (fs.existsSync(path.join(VIS, d))) walk(path.join(VIS, d));
-for (const f of ["README.md", "CHANGELOG.md", "RULES.md", "DECISIONS.md", "FORMAT.md", "serve.py"]) if (fs.existsSync(path.join(VIS, f))) stamp[f] = crypto.createHash("md5").update(fs.readFileSync(path.join(VIS, f))).digest("hex");
+for (const f of ["README.md", "CHANGELOG.md", "RULES.md", "DECISIONS.md", "FORMAT.md", "serve.py", "TOOLS.md", "HOWTOUSE.md", "BRING_YOUR_DATA.md", "AGENTS.md"]) if (fs.existsSync(path.join(VIS, f))) stamp[f] = crypto.createHash("md5").update(fs.readFileSync(path.join(VIS, f))).digest("hex");
 fs.writeFileSync(path.join(VIS, ".check-ok.json"), JSON.stringify({ passed: new Date().toISOString(), files: stamp }, null, 1));
 console.log(`\nPASS — stamp written (${Object.keys(stamp).length} files); viewer uploads of exactly these files are allowed`);

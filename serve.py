@@ -1,7 +1,7 @@
 """serve.py — serve the visualizer (viewer + data) and let the viewer's save buttons write views/.
 
-    cd /data/personal/Nicholas_Rackers/visualizer && /data/personal/Nicholas_Rackers/.venv/bin/python serve.py
-    then open http://localhost:8765/viewer/   (VS Code forwards the port; Ctrl+C stops it)
+    python serve.py [PORT] [--project projects/<name>] [--datamgr DIR]
+    then open http://localhost:8765/viewer/   (on a remote machine: forward the port, e.g. ssh -L 8765:localhost:8765; Ctrl+C stops it)
 
 Same as `python -m http.server`, plus a tiny API used by the viewer's save buttons:
     GET    /api/ping                    -> {"ok": true}

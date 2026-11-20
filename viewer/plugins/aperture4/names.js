@@ -60,6 +60,6 @@ export function registerNames(api) {
     r_out: "r_{\\rm out}", line_current: "I", Rstar: "R_\\ast", R_star: "R_\\ast" });
   api.registerAxisNames({ r_max: "r_max", pt: "s", surface_theta: "θ_foot", r_out: "r_out", r_max_line: "r_max", s_norm: "s/s_max" },
     ["r_max", "r_max·s", "r_max·s/s_max", "θ_foot", "r_out"]);
-  api.registerDefaults({ scaleRef: ["drive_twist"], configVars: ["twist_rmax_1", "twist_rmax_2"] });
+  api.registerDefaults({ scaleRef: ["drive_twist"], configVars: ["twist_rmax_1", "twist_rmax_2"], timeUnits: "R_*/c" });   // (time units: for stores written before v15.3)
   api.registerExampleDesktop(runs => exampleDesktop(runs));
 }

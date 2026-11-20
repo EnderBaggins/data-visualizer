@@ -4,6 +4,18 @@ Release notes, newest first: what changed, the human's words, how it was tested.
 (rules: RULES.md; why decisions were made: DECISIONS.md). Each entry: version, date, level (major / minor / patch),
 what changed, the human's request in quotes, how it was tested.
 
+- **v15.3.0 (2026-11-21, minor): general defaults, the "?" list of every tool, TOOLS.md.** (human: "finish up the
+  visualizer stuff"; stage 4 and the docs of the public-release plan, D17)
+  - **Time units from the data:** the data manager writes the reader's `time_units` into each manifest (FORMAT.md); the
+    viewer labels time axes, "rate of…" units and the ± h averaging with them. Stores written before this: the
+    aperture4 plugin's default `R_*/c` (nothing rewritten). The "h in R*/c; outputs are 1 R*/c apart" help texts are general.
+  - **Maps of non-spherical data** open on their last two space axes (x × y) instead of time × the first; r–θ maps and
+    along-line maps unchanged.
+  - **Name and messages:** the header and tab say "data-visualizer"; the offline message no longer names alexstorage /
+    VS Code; serve.py's start line is general.
+  - **"?" in the header:** every tool (the core's and the plugins') with its folder, where it goes and its help;
+    "place" arms it like the Tools tab; links to HOWTOUSE.md and BRING_YOUR_DATA.md. The same list is TOOLS.md, written
+    by `tools/tools_md.mjs`; the check fails when TOOLS.md is out of date.
 - **v15.2.0 (2026-11-20, minor): the data manager reads through a project's reader; its page follows the project.**
   (human: "ok go ahead and swap it in" — DECISIONS D21; stage 5 of the public-release plan) Stored data untouched.
   - **The data manager** (`claude_work/datamgr/`, swapped in on the server and locally; old package archived in

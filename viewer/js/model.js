@@ -652,7 +652,7 @@ export const missingKindText = (m, label) => `needs the ${m.plugin} plugin, whic
 // ---- axes catalogue (standard dims: r, theta, time, r_max, theta_foot ...; a data kind's own axes) ---------------
 const VIRTUAL_AXES = { lag: { label: "lag", units: "" } };   // v14.1: an autocorrelation's lag (the period tool's plots)
 export function axisInfo(id) {
-  if (id === "time") return { id, label: "t", units: "R_*/c", scale: "linear" };
+  if (id === "time") return { id, label: "t", units: timeUnits(), scale: "linear" };   // v15.3: the data's units
   if (typeof id === "string" && id.startsWith("tab:")) {   // v14.0: a table column (tables.js tabAxis)
     const i = id.lastIndexOf("/"), tb = S.tables?.[decodeURIComponent(id.slice(4, i))], k = id.slice(i + 1), c = tb?.cols?.find(x => x.key === k);
     return c ? { id, label: c.label || k, units: "", scale: "linear" } : { ...axisInfo(k), id };
@@ -827,7 +827,7 @@ export function coordChoices(src, d) {
 }
 
 export function dimCoord(src, d) {
-  if (d === "time") return { values: src.times, label: "t", units: "R_*/c", scale: "linear" };
+  if (d === "time") return { values: src.times, label: "t", units: timeUnits(src.run), scale: "linear" };
   return src.run.m.coords[d];
 }
 export function indexer(values) {                     // nearest index, ascending or descending coordinates
@@ -945,6 +945,7 @@ export function setAxes2D(s, src, xd, yd) {
   const g = src.run.m.geometry?.spherical, d = src.spaceDims;
   if (!xd || !yd) {
     if (g && d.includes(g.r) && d.includes(g.theta)) { xd = g.r; yd = g.theta; }
+    else if (d.length >= 2) { xd = d[d.length - 1]; yd = d[d.length - 2]; }   // v15.3: (…, y, x) data opens as x × y
     else { const all = src.hasTime ? ["time", ...d] : d; xd = all[0]; yd = all[1] ?? all[0]; }
   }
   s.xdim = xd; s.ydim = yd;
@@ -1006,10 +1007,16 @@ const EXAMPLE_DESKTOPS = [];
 export function registerExampleDesktop(f) { if (typeof f !== "function") throw new Error("not a function"); EXAMPLE_DESKTOPS.push(f); }
 /** v15.0 (plugins.js): names a plugin prefers as defaults: {scaleRef: [quantity names a scale "÷ max of …" starts on],
  *  configVars: [config keys ticked first when making config variables]}. */
-export const PREFS = { scaleRef: [], configVars: [] };
+export const PREFS = { scaleRef: [], configVars: [], timeUnits: "" };
 export function registerDefaults(d) {
   if (!d || typeof d !== "object") throw new Error("not an object");
-  for (const k of Object.keys(PREFS)) if (Array.isArray(d[k])) PREFS[k].push(...d[k]);
+  for (const k of Object.keys(PREFS)) if (Array.isArray(d[k]) && Array.isArray(PREFS[k])) PREFS[k].push(...d[k]);
+  if (typeof d.timeUnits === "string" && !PREFS.timeUnits) PREFS.timeUnits = d.timeUnits;   // v15.3: when a manifest has none
+}
+/** v15.3: the units of the time axis: the dataset's manifest (time_units, written by the data manager), else the first
+ *  dataset's, else a plugin's default (aperture4: R⋆ per c), else none. */
+export function timeUnits(run = null) {
+  return run?.m?.time_units ?? Object.values(store.runs)[0]?.m?.time_units ?? (PREFS.timeUnits || "");
 }
 
 // ---- time range (v5.12, human 2026-10-06: "some runs are not the same length as others (for instance pairs1 crashed

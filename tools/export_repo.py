@@ -35,7 +35,7 @@ PLAN = [  # (source, destination in the repo)
     (os.path.join(VIS, "tests"), "tests"),
     (os.path.join(CW, "datamgr"), "datamgr"),
     (os.path.join(CW, "projects"), "projects"),
-] + [(os.path.join(VIS, f), f) for f in ("RULES.md", "FORMAT.md", "DECISIONS.md", "CHANGELOG.md", "serve.py", "HOWTOUSE.md", "BRING_YOUR_DATA.md", "AGENTS.md")]
+] + [(os.path.join(VIS, f), f) for f in ("RULES.md", "FORMAT.md", "DECISIONS.md", "CHANGELOG.md", "serve.py", "HOWTOUSE.md", "BRING_YOUR_DATA.md", "AGENTS.md", "TOOLS.md")]
 
 def copy_tree(src, dst, wanted):
     for root, dirs, files in os.walk(src):

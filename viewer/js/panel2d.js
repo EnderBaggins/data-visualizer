@@ -18,6 +18,7 @@ export function axesFor(s, src) {
   if (src.dims.includes(s.xdim) && src.dims.includes(s.ydim) && s.xdim !== s.ydim) return [s.xdim, s.ydim];
   const g = src.run.m.geometry?.spherical, d = src.spaceDims;
   if (g && d.includes(g.r) && d.includes(g.theta)) return [g.r, g.theta];
+  if (d.length >= 2) return [d[d.length - 1], d[d.length - 2]];   // v15.3: (…, y, x) data opens as x × y
   const all = src.hasTime ? ["time", ...d] : d;
   return [all[0], all[1] ?? all[0]];
 }

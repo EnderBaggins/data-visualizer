@@ -1,12 +1,12 @@
-# data-visualizer (v15.2.0, 2026-11-20)
+# data-visualizer (v15.3.0, 2026-11-20)
 
 An interactive browser plotter for simulation output, plus a data manager that turns raw simulation dumps into the
 small, fast files the plotter reads. Built for Aperture4 magnetar PIC runs; made general so others can bring their own
 data (fork it and adjust).
 
 **Guides:** [HOWTOUSE.md](HOWTOUSE.md) (by goal: see, measure, arrange) · [BRING_YOUR_DATA.md](BRING_YOUR_DATA.md) (connect your
-simulation's files to the data manager, or write the store yourself) · [AGENTS.md](AGENTS.md) (for your AI assistant: what to
-suggest, where code goes).
+simulation's files to the data manager, or write the store yourself) · [TOOLS.md](TOOLS.md) (every tool, also behind the viewer's **?** button) ·
+[AGENTS.md](AGENTS.md) (for your AI assistant: what to suggest, where code goes).
 
 ## What is here
 

@@ -5,7 +5,7 @@
 // dataset of the panel (swap / remove all its lines) and "+ dataset" (this panel's lines for another dataset).
 import * as R from "./render.js";
 import { S, store, srcOf, fitAxis, ctxPanel, eff, panelRun, datatypes, menuSections, coordChoices, newLine, newId, indexer, pickIndex, pickCoord, isRef, runOf, runLabel, runNames, numOf, isFn, isMeanPick,
-  isAn, anDef, anBindings, newAnalyticLine, PREFS, axisLabel, runsOf, isRunList, varOf, listOf, listColor, listEntries, newVarName, usesOf, splitKind, lineKind, opLabel, axisInfo } from "./model.js";
+  isAn, anDef, anBindings, newAnalyticLine, PREFS, timeUnits, axisLabel, runsOf, isRunList, varOf, listOf, listColor, listEntries, newVarName, usesOf, splitKind, lineKind, opLabel, axisInfo } from "./model.js";
 import { compileFunction } from "./data.js";
 import { el, select, popover, closePopover, colorPicker, colorButton } from "./ui.js";
 import { DASHES } from "./render.js";
@@ -32,7 +32,7 @@ export function smoothControls(spec, onChange, { inherit = false, xu = "", dflt 
   if (!on) return el("span", { class: "smooth" }, kindSel);
   return el("span", { class: "smooth" }, kindSel, "over x ±",
     numRef(spec.h ?? null, v => { if (v === null || isRef(v) || v > 0) onChange({ ...spec, h: v }, false); },
-      { size: 4, title: "h: each point is smoothed over x − h … x + h, in the x axis's units (R* on an s axis, R*/c on a t axis); a variable works — a line length $L is each line's own" }),
+      { size: 4, title: "h: each point is smoothed over x − h … x + h, in the x axis's units; a variable works — a line length $L is each line's own" }),
     xu ? el("span", { class: "dim" }, xu) : null);
 }
 /** Scale controls (v5.5): "÷ its own max", "÷ max of <datatype> on the same line" (e.g. the drive twist),
@@ -91,8 +91,8 @@ function dimRows(src, xdim, d, onChange, allowList) {
         // profile as the mean of the outputs within t ± h around its time (was "average ±N" outputs; they are 1 R*/c apart)
         d.timeMode !== "mean" ? [el("span", { class: "dim" }, "mean over t ±"),
           numRef(d.tavg !== undefined ? d.tavg : d.avg ?? null, v => { if (v === null) delete d.tavg; else d.tavg = v; delete d.avg; onChange(); },
-            { size: 3, placeholder: "0", title: "average this profile over the outputs within t − h … t + h around its time (h in R*/c; the outputs are 1 R*/c apart, so ± 5 = 11 outputs); empty or 0 = none; a variable works" }),
-          el("span", { class: "dim" }, "R*/c")] : null,
+            { size: 3, placeholder: "0", title: "average this profile over the outputs within t − h … t + h around its time (h in the time axis's units); empty or 0 = none; a variable works" }),
+          el("span", { class: "dim" }, timeUnits())] : null,
         d.timeMode === "mean" ? [numRef(d.timeFrom ?? null, v => { d.timeFrom = v; onChange(); }, { size: 5, placeholder: "from", title: "from t = (empty = the start of the desktop's time range)" }), "–",
           numRef(d.timeTo ?? null, v => { d.timeTo = v; onChange(); }, { size: 5, placeholder: "to", title: "to t = (empty = its end)" })] : null));
       continue;

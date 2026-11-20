@@ -16,7 +16,7 @@ import { CYC_WHAT, isPerCurve, curveDim, newCyclePlot } from "./cycleplots.js"; 
 import { loGeom, loPositions, newLineoutPlot, retargetLineout, loNextPosition, loColor, loColors, setLoColor } from "./lineout.js";   // v14.2
 import { lineCan } from "./linekinds.js";   // v14.4: what a made line can do
 const LO_PICK = new Map();                                // v14.3: which lineout chip's colour picker is open (per tool)
-import { eff } from "./model.js";
+import { eff, timeUnits } from "./model.js";
 import { fitParams } from "./fit.js";
 
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -854,8 +854,8 @@ export function settings2DBox(ctx) {
           varBind(ft, v => { ctx.set("fixedTime", v ?? src.times[src.indexAt(numOf(ft) ?? src.times.at(-1))]); ctx.done(); })] : null,
         // v8.13: the map averaged over ±N outputs around that time (not a data kind's map: it reads its own data)
         kind ? null : [el("span", { class: "dim" }, "mean over t ±"), numRef(ctx.get("avg") ?? null, v => { ctx.set("avg", v); ctx.done(); },
-          { size: 2, placeholder: "0", title: "average the map over the outputs within t ± h around the time shown (h in R*/c; the outputs are 1 R*/c apart, so ± 2 = 5 outputs; 0 or empty = none; a number or a variable)" }),
-        el("span", { class: "dim" }, "R*/c")]));
+          { size: 2, placeholder: "0", title: "average the map over the outputs within t ± h around the time shown (h in the time axis's units; 0 or empty = none; a number or a variable)" }),
+        el("span", { class: "dim" }, timeUnits())]));
     } else {
       // a slice: a slider, or a number variable (read in r_max if the dim has it, else its own coordinate; v5)
       const c = dimCoord(src, d), picks = ctx.get("picks") || {}, p = picks[d];

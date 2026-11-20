@@ -12,11 +12,13 @@ import numpy as np
 from ..axes import AXES
 
 
-def along_points(data, rmax=None, n_points=None):
+def along_points(data, rmax=None, n_points=None, extra=None):
     """The along-line profiles at the traced line's OWN points, with their true arc length (2026-11-09; human: "make all
     of the along field lines data saved naturally as along s … I fear there may be some bad conversion").
 
-    {s, epar, phi, jpar_over_B, I_enc, Bmag}: arrays (len(rmax), n_points) at data's loaded output. Point k of line j
+    {s, epar, phi, jpar_over_B, I_enc, Bmag}: arrays (len(rmax), n_points) at data's loaded output. extra= a dict
+    {name: array on the (theta, r) grid} sampled at the same points and returned under its own name too, so a second
+    family can carry an extra quantity along the same lines without a second trace (2026-11-21: pairs_along). Point k of line j
     is the line's k-th vertex from the north footpoint (the tracer's crossings of the grid's cell edges: Psi contour
     through the footpoint, compute_vertices, oriented north -> south, closed if both ends at r < 1.1). s = poloidal arc length from the north footpoint (R_*), so s/s_max = s / s[last] and the
     distance from the south footpoint = s[last] - s. Nothing is resampled along the line: E_par, j_par/B, r sin(theta)
@@ -33,7 +35,8 @@ def along_points(data, rmax=None, n_points=None):
     n = int(n_points or len(AXES["pt"].values_for()))
     v = _view_at(data)                                  # exact mesh; B, E, J read once and shared with data (2026-11-12)
     th_grid, r_grid = v._theta, v._r
-    names = ("s", "epar", "phi", "jpar_over_B", "I_enc", "Bmag")
+    extra = dict(extra or {})
+    names = ("s", "epar", "phi", "jpar_over_B", "I_enc", "Bmag") + tuple(extra)
     out = {k: np.full((len(rmax), n), np.nan) for k in names}
     B1, B2, B3, E1, E2, E3, J1, J2, J3 = v.B1, v.B2, v.B3, v.E1, v.E2, v.E3, v.J1, v.J2, v.J3
     Bmag = np.sqrt(B1**2 + B2**2 + B3**2) + 1e-30
@@ -42,6 +45,7 @@ def along_points(data, rmax=None, n_points=None):
               "jpar_over_B": (J1 * B1 + J2 * B2 + J3 * B3) / Bmag**2,
               "I_enc": v._rv * np.sin(v._thetav) * B3,
               "Bmag": Bmag}
+    fields.update({k: np.asarray(f, dtype=float) for k, f in extra.items()})
     interp = {k: RegularGridInterpolator((th_grid, r_grid), f, bounds_error=False, fill_value=np.nan)
               for k, f in fields.items()}
     g_interp = RegularGridInterpolator((th_grid, r_grid), fields["epar"] * Bmag / Bpol, bounds_error=False, fill_value=np.nan)
@@ -68,3 +72,29 @@ def along_points(data, rmax=None, n_points=None):
         gv, gm = g_interp(pts), g_interp(on_grid(np.arctan2(xm, zm), np.hypot(xm, zm)))
         out["phi"][j, :m] = np.concatenate(([0.0], np.cumsum((gv[:-1] + 4 * gm + gv[1:]) / 6 * seg)))
     return out
+
+
+def pairs_along_points(data):
+    """Pairs made per unit arc length s along each closed line, at the tracer's own points: {s, pair_rate}.
+
+    pair_rate = dN/dPsi per unit s x Psi_line / (fld_output_interval * dt), where dN/dPsi per unit s is lib.ai_functions'
+    existing pair field, _count_per_cell(d, "pair_produced") -- the one line_pairs uses through the "pairs" line
+    quantity (define_line_quantity("pairs", reduce="integral_ds")). Its denominator r sin(theta) |B_pol| x cell area is
+    |grad Psi| dA per radian, so integrating it along a line gives the pairs that line makes per unit Psi; x Psi_line
+    (Psi = Bp / r_max, the line's label) that is pairs per ln r_max, the same convention as line_pairs. pair_produced is
+    the count since the PREVIOUS output (2 x weight per pair, radiative_transfer_impl.hpp, reset at every output), hence
+    the divide by the output interval. Not a density of pairs: pairs BORN on the line. Same tracer and points as
+    along_points (along.s).
+
+    Checked against line_pairs (coarea, a separate path) on rcs-pairs-1-ec025 t = 100, 2026-11-21: int(pair_rate ds)
+    / line_pairs = 0.98-1.10 on r_max 4.9-24, 1.41 on the innermost 3.3 line where few cells carry the count."""
+    from lib.ai_functions import _count_per_cell, _view_at
+
+    rmax = np.asarray(AXES["r_max"].values_for(), dtype=float)
+    v = _view_at(data)                                  # exact mesh; B, pair_produced read once and shared
+    c = v._conf
+    dt_out = float(c["fld_output_interval"]) * float(c["dt"])
+    rate = _count_per_cell(v, "pair_produced") / dt_out
+    out = along_points(data, rmax=rmax, extra={"pair_rate": rate})
+    out["pair_rate"] = out["pair_rate"] * (float(c["Bp"]) / rmax)[:, None]   # x Psi_line, the line's label
+    return {k: out[k] for k in ("s", "pair_rate")}

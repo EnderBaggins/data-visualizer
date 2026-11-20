@@ -12,7 +12,7 @@ import { openEditLine, openListValue, lineName } from "./lines.js";
 import { tableOf, rowText, tabLineText } from "./tables.js";   // v14.0: tables
 import * as CYC from "./cycles.js";                                                                  // v14.1: period tool
 import { madeKind, lineCan } from "./linekinds.js";                                       // v14.4: the line-source registry
-import { panelRun, setRunContext, setViewContext, curveValue, READING_OPS, dataKindOf, missingKindOf, missingKindText, splitKind, lineKind, opLabel, putOutput, liveOutput, outputCurve, curveStat, toolValues, setToolValues, yAxisId, ownY } from "./model.js";
+import { timeUnits, panelRun, setRunContext, setViewContext, curveValue, READING_OPS, dataKindOf, missingKindOf, missingKindText, splitKind, lineKind, opLabel, putOutput, liveOutput, outputCurve, curveStat, toolValues, setToolValues, yAxisId, ownY } from "./model.js";
 import { fontSize, runTip } from "./vars.js";
 import { canCompute, jobFor, computeBox } from "./cacheable.js";
 
@@ -1237,7 +1237,7 @@ export async function render1D(members) {
     const sk = splitKind(s.ykind), slopeNotes = new Set(curves.map(c => c.slopeNote).filter(Boolean));
     const snote = slopeNotes.size === 1 ? ` ${[...slopeNotes][0]}` : "", xu = T.x ? null : axisInfo(s.xaxis).units || null;
     const yunits = sk.mode === "slope" ? (xu ? (units ? `${units} / ${xu}` : `per ${xu}`) : units ? `${units} per x` : "")
-      : sk.mode === "rate" ? (units ? `${units} per R_*/c` : "per R_*/c") : units;
+      : sk.mode === "rate" ? (units ? `${units} per ${timeUnits() || "unit time"}` : `per ${timeUnits() || "unit time"}`) : units;   // v15.3
     const auto = {
       title: panel.name || (s.ykind ? `${s.ykind} vs ${T.x ? T.x.label : axisInfo(s.xaxis).label}` : "1D plot"),
       xlabel: T.x ? T.x.label : axisLabel(s.xaxis),                     // v8.17: "1/r_max" (no units)

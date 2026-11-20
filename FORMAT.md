@@ -93,6 +93,9 @@ the viewer decides per panel which dims go on x / y / series / frame / pick.
 }
 ```
 
+Optional `time_units` (v15.3): the units of the time axis (e.g. `"R_*/c"`, `"s"`); the data manager writes it from its
+reader. Without it the viewer uses a plugin's default, else none.
+
 ## 3. Layouts (binary files)
 
 All binaries are raw little-endian, **C order (last dim fastest)**, no header.
