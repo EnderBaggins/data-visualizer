@@ -26,7 +26,8 @@ viewer_from = None
 if "--viewer-from" in args:
     i = args.index("--viewer-from"); viewer_from = args[i + 1]; del args[i:i + 2]
 REPO = os.path.abspath(args[0] if args else os.path.join(os.path.dirname(WIKI), "data-visualizer"))
-OWNED = {"README.md", "LICENSE", ".gitignore", ".git", ".check-ok.json", "CLAUDE.md"}
+OWNED = {"README.md", "LICENSE", ".gitignore", ".git", ".check-ok.json", "CLAUDE.md",
+         "data", "demo_runs", "datamgr_jobs", "views", "movies", "versions", ".serve_token"}   # (per-machine, git-ignored: never removed)
 SKIP = re.compile(r"(__pycache__|\.pyc$|^app\.js$|\.bak\d*$|\.orig$)")   # (viewer/app.js: a stray pre-v6 file on the server)
 
 PLAN = [  # (source, destination in the repo)
