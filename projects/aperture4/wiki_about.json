@@ -1,0 +1,274 @@
+{
+ "2026-07-28": {
+  "about": "Deep-dive kickoff: recon via subagents (Chen2017 extraction, config archaeology, measurement history)",
+  "page": "projects/twist-structure/research-journal"
+ },
+ "2026-07-29": {
+  "about": "Why b8 died when the A-runs didn't (verified configs)",
+  "page": "projects/twist-structure/research-journal"
+ },
+ "2026-09-15": {
+  "about": "TWIST PROFILE AUDIT: faux_pairs-1…4 ran global Chen2017, not the b9 cos² band",
+  "page": "projects/twist-structure/research-journal"
+ },
+ "2026-09-16": {
+  "about": "run 5 & run 6 results: pairs6 implants more twist; the boundary design (C=5) is the one that matters",
+  "page": "projects/twist-structure/research-journal"
+ },
+ "2026-09-18": {
+  "about": "transient causality: injection SURVIVES drive-off (run.out proof); ramp-rate & damping exonerated; bipolar launch is the lead",
+  "page": "projects/twist-structure/research-journal"
+ },
+ "2026-09-19": {
+  "about": "pairs-7 NaN at t≈76: resonant drag runs despite `include_cooling=false` (debug page filed)",
+  "page": "projects/twist-structure/research-journal"
+ },
+ "Code": {
+  "about": "none beyond the selector fix",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "Diagnostics": {
+  "about": "early gate at t≈6 (dump 10) before letting it finish",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "Expectations": {
+  "about": "what we predict, and what each outcome means",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "Falsification": {
+  "about": "reading the outcome",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "M1": {
+  "about": "Bookkeeping: the pile-up is profile-dependent, not supply-dependent",
+  "page": "projects/twist-structure/reports/exp-pileup-diagnosis"
+ },
+ "M2": {
+  "about": "Inflation metrics: 55× more $B_\\phi$ energy; field garbage from $t\\approx35$",
+  "page": "projects/twist-structure/reports/exp-pileup-diagnosis"
+ },
+ "M3": {
+  "about": "Surface anatomy: global $E_\\parallel$ runaway vs tolerated slow growth",
+  "page": "projects/twist-structure/reports/exp-pileup-diagnosis"
+ },
+ "M4": {
+  "about": "Test B (positive) and the axis singularity arithmetic",
+  "page": "projects/twist-structure/reports/exp-pileup-diagnosis"
+ },
+ "Pre-flight": {
+  "about": "identical to run 5, plus one",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "Predictions": {
+  "about": "pre-registered 2026-10-26, before any data (AI)",
+  "page": "projects/twist-structure/no-pair-runs"
+ },
+ "Results": {
+  "about": "Deep Dive",
+  "page": "projects/twist-structure/cooling"
+ },
+ "Synthesis": {
+  "about": "What b8 Teaches",
+  "page": "projects/twist-structure/reports/exp-pileup-diagnosis"
+ },
+ "b9": {
+  "about": "the reference run",
+  "page": "projects/twist-structure/baseline"
+ },
+ "baseline-14": {
+  "about": "vacuum + GJ-capped surface injection",
+  "page": "projects/twist-structure/baseline"
+ },
+ "baseline-15": {
+  "about": "thermal injection at the prismatic temperature",
+  "page": "projects/twist-structure/baseline"
+ },
+ "baseline-16": {
+  "about": "slow ramp at the prismatic rate",
+  "page": "projects/twist-structure/baseline"
+ },
+ "baseline-17": {
+  "about": "flux-bundle extent matched to prismatic",
+  "page": "projects/twist-structure/baseline"
+ },
+ "baseline-19_carlqvist-planar": {
+  "about": "not a run: the Carlqvist double-layer model (planar) on baseline-19's lines (derived data)",
+  "page": "projects/plasma-double-layer/synthesis"
+ },
+ "baseline-19_carlqvist-rescaled": {
+  "about": "not a run: the Carlqvist double-layer model (rescaled) on baseline-19's lines (derived data)",
+  "page": "projects/plasma-double-layer/synthesis"
+ },
+ "faux_pairs-1": {
+  "about": "stationary injection",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "faux_pairs-10": {
+  "about": "baseline-18 + region-gated cascade",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "faux_pairs-2": {
+  "about": "cap fix",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "faux_pairs-3": {
+  "about": "cap fix + stochastic injection",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "faux_pairs-4": {
+  "about": "prob = 0.02 (safe low side) + weight ∝ |E·B|/B²",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "faux_pairs-5": {
+  "about": "resolution-gated injection + gap-confined trigger",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "faux_pairs-6": {
+  "about": "the \"closer to the boundary\" run: current-cap leeway + wider trigger",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "faux_pairs-7": {
+  "about": "particle-triggered faux pairs, prismatic-style",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "faux_pairs-8": {
+  "about": "outer pair fill + gentle ramps: make the transient weaker than the twist",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "faux_pairs-9": {
+  "about": "pairs-8 setup on the b21 baseline + region-gated cascade",
+  "page": "projects/twist-structure/faux-pairs-setup"
+ },
+ "no-pair-0": {
+  "about": "the reference (= baseline-19)",
+  "page": "projects/twist-structure/no-pair-runs"
+ },
+ "no-pair-1": {
+  "about": "30× surface field, multiplicity-capped injection",
+  "page": "projects/twist-structure/no-pair-runs"
+ },
+ "no-pair-1_carlqvist-planar": {
+  "about": "not a run: the Carlqvist double-layer model (planar) on no-pair-1's lines (derived data)",
+  "page": "projects/plasma-double-layer/synthesis"
+ },
+ "no-pair-1_carlqvist-rescaled": {
+  "about": "not a run: the Carlqvist double-layer model (rescaled) on no-pair-1's lines, same along-the-line quantities (derived data)",
+  "page": "projects/plasma-double-layer/synthesis"
+ },
+ "no-pair-2": {
+  "about": "no-pair-1 with the surface BC inside the field solver's passes",
+  "page": "projects/twist-structure/no-pair-runs"
+ },
+ "no-pair-3": {
+  "about": "profile-centered with slow injection, mean 0.1c",
+  "page": "projects/twist-structure/no-pair-runs"
+ },
+ "no-pair-4": {
+  "about": "no-pair-3 with ions, m_i/m_e = 10",
+  "page": "projects/twist-structure/no-pair-runs"
+ },
+ "no-pair-5": {
+  "about": "no-pair-3 at B_p = 10⁵",
+  "page": "projects/twist-structure/no-pair-runs"
+ },
+ "no-pair-6": {
+  "about": "no-pair-4 at B_p = 10⁵",
+  "page": "projects/twist-structure/no-pair-runs"
+ },
+ "no-pair-7": {
+  "about": "the replicate_2017 fixes on the project's 2–8 drive\n= replicate_2017_11 with the project's drive",
+  "page": "projects/twist-structure/no-pair-runs"
+ },
+ "pairs-1": {
+  "about": "no-pair-1 with the particle cascade",
+  "page": "projects/twist-structure/pairs-runs"
+ },
+ "pairs-10": {
+  "about": "the replicate_2017 fixes on the project's 2–8 drive\n= replicate_2017_7 with the project's drive",
+  "page": "projects/twist-structure/pairs-runs"
+ },
+ "pairs-2": {
+  "about": "pairs-1 with the surface BC inside the field solver's passes",
+  "page": "projects/twist-structure/pairs-runs"
+ },
+ "pairs-3": {
+  "about": "pairs-2 with the centered drive profile, band 2–8",
+  "page": "projects/twist-structure/pairs-runs"
+ },
+ "pairs-4": {
+  "about": "pairs-3 with a photon free path in the cascade",
+  "page": "projects/twist-structure/pairs-runs"
+ },
+ "pairs-5": {
+  "about": "pairs-4 with the flat drive profile",
+  "page": "projects/twist-structure/pairs-runs"
+ },
+ "pairs-6": {
+  "about": "the pairs-4 cascade on no-pair-5 (B_p = 10⁵), dt halved",
+  "page": "projects/twist-structure/pairs-runs"
+ },
+ "pairs-7": {
+  "about": "the pairs-4 cascade on no-pair-6 (B_p = 10⁵), dt halved",
+  "page": "projects/twist-structure/pairs-runs"
+ },
+ "pairs-8": {
+  "about": "pairs-6 with a pair density cap",
+  "page": "projects/twist-structure/pairs-runs"
+ },
+ "pairs-9": {
+  "about": "pairs-7 with a pair density cap",
+  "page": "projects/twist-structure/pairs-runs"
+ },
+ "profile-centered": {
+  "about": "drive-profile test: cos² in ln r_max over the band r_max 2–8, peak at r_max = 4; everything else as no-pair-2",
+  "page": "projects/twist-structure/profile-runs"
+ },
+ "profile-flat": {
+  "about": "drive-profile test: flat (1 from r_max ≈ 2.3 to 6.0, cos² tapers at the edges); everything else as no-pair-2",
+  "page": "projects/twist-structure/profile-runs"
+ },
+ "profile-shifted": {
+  "about": "drive-profile test: cos² in footpoint θ (as no-pair-2) over the band r_max 2–8, peak at r_max ≈ 3.4",
+  "page": "projects/twist-structure/profile-runs"
+ },
+ "replicate_2017_1": {
+  "about": "no pairs, γ_thr = ∞",
+  "page": "projects/twist-structure/replicate-2017"
+ },
+ "replicate_2017_11": {
+  "about": "replicate_2017_6 + gravity 0.5 + the always-on atmosphere (flux 2000): the no-pair twin of replicate_2017_7",
+  "page": "projects/twist-structure/replicate-2017"
+ },
+ "replicate_2017_2": {
+  "about": "pairs at γ_thr = 10, uncapped",
+  "page": "projects/twist-structure/replicate-2017"
+ },
+ "replicate_2017_3": {
+  "about": "replicate_2017_2 + pair density cap",
+  "page": "projects/twist-structure/replicate-2017"
+ },
+ "replicate_2017_4": {
+  "about": "replicate_2017_2 with current smoothing off",
+  "page": "projects/twist-structure/replicate-2017"
+ },
+ "replicate_2017_5": {
+  "about": "replicate_2017_2 with the boundary-consistent filter",
+  "page": "projects/twist-structure/replicate-2017"
+ },
+ "replicate_2017_7": {
+  "about": "replicate_2017_5 with Chen's surface: gravity + always-on atmosphere",
+  "page": "projects/twist-structure/replicate-2017"
+ },
+ "rcs-nopair-1": {
+  "about": "no-pair-7 + resonant Compton cooling, photons emitted but no pairs (the cooling-only twin of rcs-pairs-1)",
+  "page": "projects/twist-structure/cooling"
+ },
+ "rcs-pairs-1": {
+  "about": "no-pair-7 + resonant Compton cooling and photon pair production (twin of rcs-nopair-1)",
+  "page": "projects/twist-structure/cooling"
+ },
+ "rcs-pairs-chen-1": {
+  "about": "resonant cooling and photon pairs on Chen's drive",
+  "page": "projects/twist-structure/cooling"
+ }
+}

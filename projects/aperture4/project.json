@@ -1,0 +1,27 @@
+{
+ "_doc": "The aperture4 project of the data manager (framework: datamgr/, keys: datamgr/config.py). Paths relative to this folder unless absolute.",
+ "name": "aperture4",
+ "reader": "reader.py:Aperture4Reader",
+ "modules": ["axes.py", "warm.py"],
+ "methods": "methods",
+ "tools": "tools",
+ "groups": "groups.json",
+ "about": "wiki_about.json",
+ "data_root": "/data/RIS/cyuran/Active/giantflares/Nicholas/Aperture4/data",
+ "store": "/data/personal/Nicholas_Rackers/visualizer/data",
+ "jobs": "/data/personal/Nicholas_Rackers/visualizer/datamgr_jobs",
+ "import_paths": ["/data/personal/Nicholas_Rackers/Aperture_plotting", "/data/personal/Nicholas_Rackers/claude_work"],
+ "viewer": "http://localhost:8765/viewer/",
+ "group_order": ["maps", "raw fields", "along field lines", "along one field line", "along the surface", "volume integrals", "other"],
+ "retire_scan": {"root": "/data/personal/Nicholas_Rackers/claude_work", "dirs": ["tools", "lib", "tasks"]},
+ "page": {
+  "title": "Aperture4 data manager",
+  "howto": "howto.txt",
+  "about_label": "wiki",
+  "about_title": "from the run's wiki section (python -m datamgr about): edit it in the wiki",
+  "axis_badges": {"theta": "θ", "r": "r", "r_max": "r_max", "pt": "s", "surface_theta": "θ_foot", "r_out": "r_out", "r_max_line": "r_max", "s_norm": "s/s_max", "z": "z"},
+  "badge_order": ["θ·r", "r_max", "r_max·s", "r_max·s/s_max", "θ_foot", "r_out", "time only", "z, no time"],
+  "badge_colors": {"θ·r": "#2f6fd0", "r_max": "#2a8a4a", "r_max·s": "#7a4bc0", "r_max·s/s_max": "#9a7bc0", "θ_foot": "#1a8a8a", "r_out": "#c06a10", "time only": "#777", "z, no time": "#8a5a3a"},
+  "suggest_example": "rcs-*, replicate_2017_*, …"
+ }
+}

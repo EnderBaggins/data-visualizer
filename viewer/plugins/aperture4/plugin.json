@@ -1,0 +1,6 @@
+{
+  "about": "Read by js/plugins.js when this plugin is not loaded: data it alone can draw, so the core can say which plugin a plot needs.",
+  "data": [
+    { "dims": ["pt"], "what": "data at a field line's own points (along-line data)" }
+  ]
+}

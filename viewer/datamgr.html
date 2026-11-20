@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>data manager</title>
+<style>
+  body { font: 13px system-ui, sans-serif; margin: 0; color: #222; background: #f6f6f4; }
+  header { position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid #ddd; padding: 8px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  header a { color: #2f6fd0; text-decoration: none; }
+  main { padding: 10px 14px 40px; max-width: 1500px; }
+  h2 { font-size: 14px; margin: 18px 0 6px; }
+  .dim { color: #777; }
+  .warn { color: #b00; }
+  button { font: inherit; padding: 2px 8px; border: 1px solid #bbb; border-radius: 3px; background: #fff; cursor: pointer; }
+  button:hover { background: #eef3fb; }
+  button.on { background: #2f6fd0; color: #fff; border-color: #2f6fd0; }
+  input[type=text] { font: inherit; padding: 1px 4px; }
+  table { border-collapse: collapse; background: #fff; }
+  th, td { border: 1px solid #e2e2e2; padding: 3px 6px; text-align: left; vertical-align: top; }
+  th { background: #fafafa; font-weight: 600; }
+  td.cell { text-align: center; cursor: pointer; white-space: nowrap; font-size: 12px; min-width: 92px; }
+  td.cell:hover { outline: 2px solid #2f6fd0; }
+  .s-up { background: #e3f4e1; }  .s-kept { background: #eeeeea; }  .s-out { background: #fde7c8; }
+  .s-none { color: #bbb; }  .s-other { background: #f1eafa; }  .s-raw { background: #e6f0fa; }  .s-derived { background: #f2f2f2; }
+  tr.sec td { background: #f3f3f0; font-weight: 600; color: #555; }
+  .scroll { overflow-x: auto; }
+  pre.code { background: #fbfbf8; border: 1px solid #e2e2e2; padding: 8px; max-width: 1100px; overflow-x: auto; font-size: 12px; }
+  .job { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px; margin: 4px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .bar { width: 220px; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+  .bar > div { height: 100%; background: #2f6fd0; }
+  .bar.wait > div { background: #bbb; }
+  td.cell.flash { outline: 3px solid #e07b00; outline-offset: -3px; }
+  nav.tabs { display: flex; gap: 4px; align-items: center; margin: 6px 0 2px; flex-wrap: wrap; }
+  nav.tabs button { border-radius: 4px 4px 0 0; } nav.tabs button.on { background: #fff; color: #222; font-weight: 600; border-bottom-color: #fff; }
+  nav.tabs .dim { margin-left: 10px; }
+  .card { max-width: 420px; display: flex; flex-direction: column; gap: 5px; }
+  .card textarea { width: 100%; font: 12px system-ui, sans-serif; }
+  .about { font-size: 12px; color: #3d4148; max-width: 420px; white-space: pre-line; }
+  .tagchip { font-size: 11px; background: #eef1f5; border-radius: 8px; padding: 0 6px; margin-right: 3px; color: #445; }
+  .follow { font-size: 11px; color: #2a7a2a; }
+  table.mt { border-collapse: collapse; } table.mt td, table.mt th { padding: 3px 8px; border-bottom: 1px solid #eee; vertical-align: top; text-align: left; }
+  table.mt .over { color: #b26b00; }
+  .health { font: 11px ui-monospace, monospace; color: #555; }
+  .linkish { color: #124; cursor: pointer; text-decoration: underline dotted; }
+  .words { cursor: help; }
+  .tipbox { position: fixed; z-index: 60; max-width: 320px; background: #2b2e33; color: #f3f4f6; font-size: 12px; line-height: 1.35;
+    padding: 5px 8px; border-radius: 5px; box-shadow: 0 4px 14px rgba(0,0,0,.25); white-space: pre-line; pointer-events: none; }
+  .jobline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 2px 10px; font-size: 13px; }
+  .jobline .ok { color: #2a8a3a; } .jobline.bad { background: #fff4f2; border-radius: 4px; }
+  .jobline pre { flex-basis: 100%; }
+  button.small { font-size: 11px; padding: 0 6px; }
+  .oldjobs { margin: 4px 0 0; } .oldjobs summary { cursor: pointer; }
+  .pop { position: absolute; z-index: 20; background: #fff; border: 1px solid #bbb; border-radius: 4px; padding: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.15); display: flex; flex-direction: column; gap: 6px; min-width: 240px; }
+  .pop .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .runs { display: flex; flex-wrap: wrap; gap: 4px 12px; max-width: 520px; max-height: 220px; overflow-y: auto; }
+  .legend span { padding: 1px 6px; margin-right: 6px; border-radius: 3px; }
+  .pick { width: 18px; text-align: center; }
+  /* v6.2: a file-browser feel — drag columns, rows and groups; click a name to rename; ⋯ / right-click for actions */
+  .name, .grp { cursor: text; border-radius: 3px; padding: 0 2px; }
+  .name:hover, .grp:hover { background: #eef3fb; outline: 1px dashed #9ab; }
+  .handle { cursor: grab; color: #aaa; margin-right: 4px; user-select: none; }
+  tr.sec { cursor: grab; }  th.colhead { cursor: grab; white-space: nowrap; }
+  th.corner .total { margin-top: 4px; font-size: 13px; font-weight: 600; color: #234; }   /* v6.3: total storage */
+  button.more { border: none; background: none; padding: 0 4px; color: #777; font-weight: bold; cursor: pointer; }
+  button.more:hover { color: #2f6fd0; background: #eef3fb; }
+  .drop-before { box-shadow: inset 0 3px 0 #2f6fd0 !important; }  th.drop-before { box-shadow: inset 3px 0 0 #2f6fd0 !important; }
+  .drop-after { box-shadow: inset 0 -3px 0 #2f6fd0 !important; }  th.drop-after { box-shadow: inset -3px 0 0 #2f6fd0 !important; }
+  tr.dropin td { background: #dfeafc !important; }
+  tr.newgroup td { color: #999; border-style: dashed; font-size: 12px; display: none; }
+  body.dragging-rows tr.newgroup td { display: table-cell; }
+  .hint { margin-left: 10px; display: none; }  body.dragging-rows .hint { display: inline; }
+  .grp { padding: 0 4px; border-radius: 3px; }
+  tr.selrow td { box-shadow: inset 0 0 0 9999px rgba(47, 111, 208, .07); }
+  button.small { font-size: 11px; padding: 0 6px; }
+  .hiddenbar { margin: 4px 0; display: flex; gap: 4px; align-items: center; color: #777; }
+  .runs.col { flex-direction: column; flex-wrap: nowrap; max-width: 640px; }
+  #selbar { position: sticky; top: 41px; z-index: 4; display: none; gap: 8px; align-items: center; background: #fffbe6;
+            border: 1px solid #e8d48a; border-radius: 4px; padding: 5px 10px; margin: 4px 0; }
+  /* v8.24: dataset groups (tree), a group's grid, a dataset's page */
+  .dmwrap { display: flex; gap: 12px; align-items: flex-start; }
+  #dstree { flex: none; width: 230px; position: sticky; top: 50px; max-height: calc(100vh - 60px); overflow-y: auto; background: #fff;
+            border: 1px solid #e2e2e2; border-radius: 4px; padding: 6px 4px; font-size: 13px; }
+  .dmmain { flex: 1; min-width: 0; }
+  .tg { display: flex; align-items: center; gap: 2px; padding: 3px 4px; border-radius: 3px; font-weight: 600; color: #334; }
+  .tg.all { cursor: pointer; } .tg.on, .td.on { background: #e3ecf7; }
+  .tg .fold { cursor: pointer; width: 14px; color: #888; user-select: none; } .tg .gname { cursor: pointer; flex: 1; }
+  .tg .gname:hover, .td:hover { text-decoration: underline dotted; }
+  .tg button.more { margin-left: auto; }
+  .tkids { margin: 0 0 4px 0; }
+  .td { padding: 2px 4px 2px 22px; border-radius: 3px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tg.dropin { background: #dfeafc; outline: 1px dashed #2f6fd0; }
+  .tfoot { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; padding: 6px 4px 0; border-top: 1px solid #eee; }
+  .gridhead { display: flex; gap: 8px; align-items: center; margin: 2px 0 6px; flex-wrap: wrap; }
+  .dspage { background: #fff; border: 1px solid #e2e2e2; border-radius: 4px; padding: 10px 14px; max-width: 900px; display: flex; flex-direction: column; gap: 6px; }
+  .dshead { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; } .dsname { font-size: 16px; font-weight: 600; }
+  .dsbtns { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
+  table.dstable td { border: none; border-bottom: 1px solid #eee; } table.dstable td.cell { min-width: 70px; }
+  table.dstable { align-self: flex-start; } table.dstable td.nw { white-space: nowrap; }
+  table.dstable th { border: none; border-bottom: 1px solid #ccc; background: none; font-size: 12px; color: #555; font-weight: 600; }   /* v11.4.1: as wide as its content (it stretched; the slack went to the names) */
+  .preset { display: inline-flex; gap: 1px; }
+  .folderbar { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; margin: 2px 0 8px; }   /* v11.5: folder views */
+  .axb { display: inline-block; font-size: 10px; line-height: 14px; padding: 0 5px; border: 1px solid; border-radius: 8px; margin: 0 5px 0 2px; vertical-align: 1px; white-space: nowrap; background: #fff; }   /* v11.6: axes badge */
+  .td .tsel { margin: 0 4px 0 -16px; vertical-align: -2px; } .td.sel { background: #eef3fb; }   /* v11.4: several datasets */
+  .tsel-bar { margin: 6px 0 2px; padding: 4px; border: 1px solid #d6e0f0; border-radius: 4px; background: #f5f8fd; display: flex; flex-direction: column; gap: 3px; }
+  .tsel-bar .row { display: flex; gap: 3px; flex-wrap: wrap; }
+  #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #334; color: #fff; padding: 6px 12px; border-radius: 4px; opacity: 0; transition: opacity .3s; }
+  #toast.warn { background: #a33; }
+</style>
+</head>
+<body>
+<header>
+  <b id="pagetitle">data manager</b>
+  <a href="index.html" title="the visualizer">← visualizer</a>
+  <button id="reload" title="read the store and the methods again">⟳ refresh</button>
+  <span id="tokenbox"></span>
+  <span class="dim" id="info"></span>
+</header>
+<main>
+  <div id="jobs"></div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="data" class="on" title="quantities × datasets: what is stored; compute and delete here&#10;drag ⠿ rows, group headings and columns · click a name to rename · ⋯ or right-click: actions · tick rows to act on several">Data</button><button data-tab="methods" title="how each quantity is computed (code, axes, where stored)">Methods</button><button data-tab="yaxes" title="quantities in one group share a y axis in the visualizer; units fill in where a method gives none">y-axis groups</button>
+    <span class="dim words" title="dataset = a simulation (or derived data)&#10;quantity = what is stored and plotted&#10;y-axis group = what shares a y axis&#10;group = how quantities are listed">words ⓘ</span>
+  </nav>
+  <section id="tab-data">
+  <h2>Stored for the visualizer <span class="dim legend">
+    <span class="s-up">up to date</span><span class="s-kept">made before the data manager (kept)</span><span class="s-raw">raw field (copied)</span><span class="s-derived">derived (stored only)</span><span class="s-out">out of date</span><span class="s-other">no method</span>
+</span></h2>
+  <div class="dmwrap">
+    <aside id="dstree" title="dataset groups: click a group for its grid, a dataset for its page · drag datasets onto a group · ▾ folds"></aside>
+    <div class="dmmain">
+      <div id="selbar"></div>
+      <div class="scroll" id="grid">loading…</div>
+    </div>
+  </div>
+  </section>
+  <section id="tab-methods" hidden>
+  <h2 title="compute from the Data tab: a cell, a row's ⋯, a column's ⋯">Methods</h2>
+  <div id="methods"></div>
+  <div id="errors"></div>
+  <h2 title="in a VS Code notebook on the storage server">Add a method</h2>
+  <pre class="code" id="howto"></pre>
+  </section>
+  <section id="tab-yaxes" hidden>
+  <h2 title="quantities in one group share a y axis in the visualizer (and can be drawn together); units fill in where a method gives none">y-axis groups</h2>
+  <div id="yaxes"></div>
+  </section>
+</main>
+<div id="toast"></div>
+<script type="module" src="js/datamgr.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+import sys; sys.path.insert(0, "/data/personal/Nicholas_Rackers/claude_work")   # until datamgr moves into Aperture_plotting
+import datamgr as dm
+
+@dm.register(axes=("theta", "r"), label="E∥/B", yaxis="E∥/B")        # axes: dm.AXES names or dm.Axis(...); yaxis = its y-axis group
+def my_Epar_over_B(data):                                             # data = the run at one output
+    B2 = data.B1**2 + data.B2**2 + data.B3**2
+    return (data.E1 * data.B1 + data.E2 * data.B2 + data.E3 * data.B3) / B2
+
+dm.check(my_Epar_over_B, "baseline-19")        # 3 outputs: small plot, numbers, cost of caching it all
+dm.save(my_Epar_over_B)                        # -> projects/aperture4/methods/my_Epar_over_B.py (shows up here)
+dm.cache("my_Epar_over_B", runs=["baseline-19"])   # or "compute" on this page (Data tab)
+
+ds = dm.dataset("no-pair-1")                   # read what is stored: its quantities are attributes
+ds.twist_angle.sel(r_max=3)                    # -> over time;  ds.twist_angle.sel(t=40) -> over r_max
+ds.B1.at(t=40)                                 # maps: one output at a time

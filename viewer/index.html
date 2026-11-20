@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aperture4 visualizer v15.2.0</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <b>Aperture4 visualizer</b> <span class="dim">v15.2.0</span>
+  <span class="desk">desktop: <b id="dname"></b></span>
+  <button id="savedesk" title="save this desktop">💾 save</button>
+  <button id="desktops" title="open / save as / delete saved desktops">desktops…</button>
+  <button id="panelsets" title="templates: plots saved on purpose, by type (insert, search, preview)">templates…</button>
+  <button id="undo" title="undo (Ctrl+Z)">↶</button>
+  <button id="redo" title="redo (Ctrl+Shift+Z / Ctrl+Y)">↷</button>
+  <span id="theme" class="themesw" title="light / dark page / dark plots (saved PNGs and movies are always light)"></span>
+  <span class="sep"></span>
+  <button id="add2d">+ map</button>
+  <button id="add1d">+ 1D plot</button>
+  <span class="sep"></span>
+  <button id="refresh" title="re-read the data store (new outputs of a running simulation)">⟳ refresh data</button>
+  <a class="btnlink" href="datamgr.html" target="_blank" title="the data manager: what is stored, compute new data (opens a new tab)">🗂 data</a>
+  <button id="hmenubtn" title="more: style, auto-refresh">☰</button>
+  <div id="hmenu" class="hmenu" hidden>
+    <button id="style" title="desktop style: font sizes, line widths, font (all plots)">🎨 style…</button>
+    <label class="chk"><input type="checkbox" id="auto"> auto-refresh data every 30 s</label>
+    <button id="restorebak" hidden title="the layout kept when you started fresh; your layout now becomes the backup (nothing is lost)">↺ restore the layout backup</button>
+  </div>
+  <span class="dim"><span id="updated"></span> · <span id="saveinfo"></span></span>
+</header>
+<aside id="sidebar"></aside>
+<div id="sbgrip" title="drag to change the sidebar's width"></div>
+<div id="sbstore" hidden>
+    <div class="exprbox" id="exprpane">
+      <div class="sbsec" title="new quantities computed point by point from stored ones when drawn, never cached&#10;names: quantities of one dataset with the same axes (a family's member: gap.voltage), other expressions, number / measured variables (read at every draw), coordinates (r, theta, r_max, theta_foot), pi, Bp, config numbers&#10;also: comparisons (&gt;= &lt; == …, 1 or 0), where(c, a, b), and(…), or(…), not(…)&#10;for: this desktop, or every desktop (📚, the shared library)&#10;a dotted name (gap.on) is listed with its family">expressions <button id="expr-new" class="tog" title="new expression">＋</button></div>
+      <div id="expr-list" class="fn-names"></div>
+      <pre id="expr-errors"></pre>
+      <details class="fn-text"><summary title="every expression as one line: name = expression  # label">edit as text</summary>
+        <textarea id="expr" rows="6" spellcheck="false" placeholder="name = expression   # label&#10;Bphi_r = B3 * r^1.5   # B_φ r^3/2"></textarea>
+        <div><button id="expr-apply">apply</button></div>
+        <div class="dim" id="expr-builtin"></div>
+      </details>
+    </div>
+    <div class="exprbox" id="anxpane">
+      <div class="sbsec" title="formulas with {parameters}, shared by every desktop&#10;1D: + line → analytic · 2D: quantity menu → analytic functions">functions <button id="anx-new" class="tog" title="new function">＋</button></div>
+      <div id="anx-list" class="fn-names"></div>
+      <pre id="anx-errors"></pre>
+      <details class="fn-text"><summary title="every function as one line: name = formula  # label [y-axis group]">edit as text</summary>
+        <textarea id="anx" rows="6" spellcheck="false" placeholder="name = formula with {parameters}   # label [y-axis group]&#10;twist_an = 2 * {line_current} * {r_max}^2 * sqrt(1 - 1/{r_max}) / {Bp}   # twist angle (analytic) [twist angle]"></textarea>
+        <div><button id="anx-apply">apply</button></div>
+      </details>
+      <div class="dim" id="anx-info"></div>
+    </div>
+</div>
+<main id="deskwrap"><div id="desktop"></div></main>
+<svg id="connector"></svg>
+<div id="setbox" style="display:none"></div>
+<footer>
+  <button id="first" title="first">⏮</button>
+  <button id="prev" title="previous (←)">◀</button>
+  <button id="play" title="play / pause (space)">▶</button>
+  <button id="next" title="next (→)">▶|</button>
+  <button id="last" title="last">⏭</button>
+  <input type="range" id="tslider" min="0" max="0" value="0">
+  <span id="tlabel"></span>
+  <button id="trange" title="time range: limit the slider, playback and precaching to part of the run">⏱ all times</button>
+  <label class="chk">fps <input type="text" id="fps" size="3"></label>
+  <label class="chk"><input type="checkbox" id="loop"> loop</label>
+  <span class="zoomctl" title="plot size: smaller = more plots side by side (also Ctrl + wheel, or pinch). Text and buttons keep their size. Kept per browser.">plot size
+    <button id="zoomout">−</button><button id="zoomval" title="back to 100%">100%</button><button id="zoomin">+</button></span>
+  <button id="prefetch">⏸ precache</button>
+  <span class="dim" id="cache"></span>
+  <label class="chk dim">cache MB <input type="text" id="cachemb" size="5"></label>
+</footer>
+<div id="toast"></div>
+<div id="fatal" style="display:none"></div>
+<div id="offline" style="display:none">serve.py or the port forward is not reachable — playback paused; retrying every 5 s. (Is serve.py running? Is VS Code connected to alexstorage?)</div>
+<script>
+// Runs before the viewer: (1) if this browser blocks storage (some embedded browsers do), use an in-memory
+// stand-in so the viewer still starts; (2) any startup error is shown here instead of a blank page, with a
+// one-click fresh start that keeps the old layout as a backup.
+(function () {
+  try { localStorage.setItem("aptvis.probe", "1"); localStorage.removeItem("aptvis.probe"); }
+  catch (e) {
+    const mem = {}, api = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; },
+      clear: () => { for (const k in mem) delete mem[k]; }, key: i => Object.keys(mem)[i] ?? null, get length() { return Object.keys(mem).length; } };
+    try { Object.defineProperty(window, "localStorage", { value: api, configurable: true }); } catch (e2) { /* nothing more we can do */ }
+    window.aptvisNoStorage = true;
+  }
+  // v8.9: the layout backup. A fresh start keeps the old layout in ...backup and never replaces an earlier backup
+  // without asking; "restore the backup" swaps the two, so neither is lost (2026-10-15: the backup had no way back)
+  const K = "aptvis.v5.state", B = K + ".backup", BT = B + ".t";
+  const when = () => { const t = localStorage.getItem(BT); return t ? ` from ${new Date(t).toLocaleString()}` : ""; };
+  window.aptvisBackup = {
+    has: () => !!localStorage.getItem(B),
+    when,
+    keep(old) {                                    // false: the human kept the earlier backup (nothing changed)
+      const b = localStorage.getItem(B);
+      if (!old || old === b) return true;
+      if (b && !confirm(`A layout backup${when()} already exists. Replace it with the layout you have now?\n(Cancel keeps it and changes nothing.)`)) return false;
+      localStorage.setItem(B, old); localStorage.setItem(BT, new Date().toISOString());
+      return true;
+    },
+    restore() {                                    // swap the layout and the backup, then start again
+      const b = localStorage.getItem(B), cur = localStorage.getItem(K);
+      if (!b) return false;
+      localStorage.setItem(K, b);
+      if (cur) { localStorage.setItem(B, cur); localStorage.setItem(BT, new Date().toISOString()); } else { localStorage.removeItem(B); localStorage.removeItem(BT); }
+      location.reload(); return true;
+    },
+  };
+  function show(msg) {
+    const f = document.getElementById("fatal");
+    if (!f || f.dataset.shown) return;
+    f.dataset.shown = "1"; f.style.display = "block";
+    if (window.aptvisStarted) {                    // v8.9.3: an error while working (a bug), not a layout that can't start
+      f.innerHTML = "<b>The viewer hit an error:</b> <code></code><br>Your layout is saved (it is not the problem). " +
+        "<button id='fatal-reload'>reload</button> <button id='fatal-close'>close this and keep working</button>";
+      f.querySelector("code").textContent = msg;
+      document.getElementById("fatal-reload").onclick = () => location.reload();
+      document.getElementById("fatal-close").onclick = () => { f.style.display = "none"; delete f.dataset.shown; };
+      return;
+    }
+    let has = false; try { has = window.aptvisBackup.has(); } catch (e) {}
+    f.innerHTML = "<b>The viewer hit an error while starting:</b> <code></code><br>" +
+      "<button id='fatal-fresh'>start with a fresh layout (your old one is kept as a backup)</button> " +
+      (has ? "<button id='fatal-restore'></button> " : "") + "<button id='fatal-reload'>reload</button>";
+    f.querySelector("code").textContent = msg;
+    document.getElementById("fatal-reload").onclick = () => location.reload();
+    document.getElementById("fatal-fresh").onclick = () => {
+      try {
+        if (!window.aptvisBackup.keep(localStorage.getItem(K))) return;
+        localStorage.removeItem(K); localStorage.removeItem("aptvis.v3.state");
+      } catch (e) {}
+      location.reload();
+    };
+    if (has) {
+      const r = document.getElementById("fatal-restore");
+      r.textContent = `restore the backup${when()}`; r.title = "your layout now becomes the backup (nothing is lost)";
+      r.onclick = () => { try { window.aptvisBackup.restore(); } catch (e) { location.reload(); } };
+    }
+  }
+  window.aptvisFatal = show;
+  // "ResizeObserver loop …" is a harmless notice browsers raise as an error event (no file): not a startup error
+  window.addEventListener("error", e => { if (/ResizeObserver loop/.test(e.message || "")) return; show((e.message || "error") + (e.filename ? `  (${e.filename.split("/").pop()}:${e.lineno})` : "")); });
+  window.addEventListener("unhandledrejection", e => show(String(e.reason && (e.reason.stack || e.reason.message) || e.reason)));
+})();
+</script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

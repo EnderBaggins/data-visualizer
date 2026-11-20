@@ -1,0 +1,11 @@
+{
+  "P5 popover() outside ui.js": 21,
+  "line-kind checks outside their modules": 0,
+  "P2 result-cache writers": 0,
+  "P2 module-level caches outside results.js": 8,
+  "native alert/confirm/prompt": 11,
+  "plot-from-plot paths (addPanel/dock calls)": 8,
+  "P3 RUN_CTX via setRunContext": 14,
+  "P10 retired words in UI text": 1,
+  "_updated": "2026-11-20"
+}

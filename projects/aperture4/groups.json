@@ -1,0 +1,98 @@
+{
+ "order": [
+  "maps",
+  "raw fields",
+  "Data OF field line",
+  "Data along Field line",
+  "along the surface",
+  "volume integrals",
+  "other",
+  "1D circuit (B06)"
+ ],
+ "of": {
+  "drive_twist": "Data OF field line",
+  "line_current": "Data OF field line",
+  "line_voltage": "Data OF field line",
+  "twist_angle": "Data OF field line",
+  "twist_rate": "Data OF field line",
+  "twist_rate_drive": "Data OF field line",
+  "twist_rate_voltage": "Data OF field line",
+  "untwist_time_line": "Data OF field line",
+  "untwist_time_line_voltage": "Data OF field line",
+  "B_along": "Data along Field line",
+  "I_along": "Data along Field line",
+  "epar_along": "Data along Field line",
+  "jpar_over_B_along": "Data along Field line",
+  "phi_along": "Data along Field line",
+  "b06-flat_p0_g1": "1D circuit (B06)",
+  "b06-flat_p1_g1": "1D circuit (B06)",
+  "b06-dip_p0_g1": "1D circuit (B06)",
+  "b06-dip_p1_g1": "1D circuit (B06)",
+  "b06-flat_p0_g0": "1D circuit (B06)",
+  "b06-flat_p1_g0": "1D circuit (B06)",
+  "line_pairs": "Data OF field line",
+  "line_photons": "Data OF field line",
+  "line_power": "Data OF field line",
+  "line_energy": "Data OF field line",
+  "line_jpar": "Data OF field line"
+ },
+ "labels": {
+  "line_current": "Enclosed Current",
+  "I_along": "Enclosed Current",
+  "jpar_over_B_along": "j∥/B",
+  "Rho_total": "charge density ρ"
+ },
+ "yaxis": {
+  "along.phi": "voltage"
+ },
+ "yunits": {},
+ "presets": {
+  "Drive & twist": [
+   "Bphi_over_B",
+   "Bphi_surface",
+   "drive_twist",
+   "line_current",
+   "twist_angle",
+   "twist_rate",
+   "twist_rate_drive"
+  ],
+  "Gaps & voltage": [
+   "Epar",
+   "Epar_over_B",
+   "along",
+   "line_voltage"
+  ],
+  "Duty cycle": [
+   "EdotJ",
+   "line_jpar",
+   "line_pairs",
+   "line_photons",
+   "line_power",
+   "line_voltage",
+   "pair_produced"
+  ],
+  "Pairs & photons": [
+   "Rho_e",
+   "Rho_p",
+   "line_pairs",
+   "line_photons",
+   "number_density",
+   "pair_produced",
+   "photon_produced"
+  ],
+  "Energy": [
+   "EdotJ",
+   "line_energy",
+   "line_power",
+   "twist_energy"
+  ],
+  "Charge maps": [
+   "Bphi_over_B",
+   "Psi",
+   "Rho_e",
+   "Rho_i",
+   "Rho_p",
+   "Rho_total"
+  ]
+ }
+}

@@ -1,0 +1,23 @@
+"""Write a small synthetic demo run (a rotating, decaying vortex): python make_demo_run.py FOLDER [N_OUTPUTS]."""
+import json
+import os
+import sys
+
+import numpy as np
+
+out = sys.argv[1]
+n = int(sys.argv[2]) if len(sys.argv) > 2 else 20
+os.makedirs(out, exist_ok=True)
+x, y = np.linspace(-1, 1, 300), np.linspace(-1, 1, 240)
+X, Y = np.meshgrid(x, y)                                  # arrays over (y, x)
+dt = 0.1
+for k in range(n):
+    t = k * dt
+    amp = np.exp(-t / 1.5)
+    cx, cy = 0.4 * np.cos(t), 0.4 * np.sin(t)
+    r2 = (X - cx) ** 2 + (Y - cy) ** 2
+    g = amp * np.exp(-r2 / 0.08)
+    np.savez(os.path.join(out, f"out.{k:05d}.npz"), vx=-(Y - cy) * g, vy=(X - cx) * g, rho=1 + g)
+with open(os.path.join(out, "run.json"), "w") as f:
+    json.dump({"dt": dt, "x": x.tolist(), "y": y.tolist(), "vortex_width": 0.2}, f)
+print(f"{n} outputs -> {out}")

@@ -1,0 +1,10 @@
+# data and per-machine state (never in the repo)
+data/
+views/
+movies/
+datamgr_jobs/
+versions/
+.serve_token
+.check-ok.json
+__pycache__/
+*.pyc

@@ -1,0 +1,7 @@
+{
+ "_doc": "A tiny demo project: a reader for folders of out.NNNNN.npz files (reader.py), its axes, one method file. Make a run with make_demo_run.py. Store and jobs default to data/ and datamgr_jobs/ next to the datamgr package unless set here or by DATAMGR_STORE / DATAMGR_JOBS.",
+ "name": "demo",
+ "reader": "reader.py:NpzReader",
+ "modules": ["axes.py"],
+ "methods": "methods"
+}
