@@ -5,17 +5,19 @@ The viewer draws whatever is stored in the **`apt-vis/1` store** (`FORMAT.md`): 
 
 | Way | When | Work |
 |---|---|---|
-| **A. A data-manager project** (recommended) | your simulation writes one file (or folder) per output | a *reader* class for your files + one small Python *method* per quantity you want to see |
+| **A. Connect your data to the data manager** (recommended) | your simulation writes one file (or folder) per output | a small folder for your data: a *reader* for your files + one short Python *method* per quantity you want to see |
 | **B. Write the store yourself** | you already have arrays in Python and just want to look | follow `FORMAT.md` (a manifest + `.bin` files) |
 
-Way A gives you the data manager's page (compute buttons per dataset × quantity), caching, versioning (a changed method
+The data manager itself is already here and shared (`datamgr/`): you don't build or change it. You only tell it about
+your data. Way A gives you its page (compute buttons per dataset × quantity), caching, versioning (a changed method
 recomputes, an unchanged one never does) and readable names in the viewer's menus.
 
 ---
 
-## A. A data-manager project, step by step
+## A. Connect your data to the data manager, step by step
 
-A project is a folder `projects/<yourname>/`. Start by copying `projects/demo/` (a working example: a folder of
+Your data's folder (a *project*) is `projects/<yourname>/`: it holds only what is specific to your data. The data
+manager in `datamgr/` reads it. Start by copying `projects/demo/` (a working example: a folder of
 `out.NNNNN.npz` files, a 2D flow on a y × x grid).
 
 ```
